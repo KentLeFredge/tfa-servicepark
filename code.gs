@@ -5,6 +5,137 @@
 
 var PROPS = PropertiesService.getScriptProperties();
 
+// ──────────────────────────────────────────────────────────────
+// DAMAGE ENGINE — Conversion collisions ACSM → composants
+// Tous les seuils sont ajustables via Script Properties.
+// ──────────────────────────────────────────────────────────────
+
+/*
+  PROPRIÉTÉS CONFIGURABLES (Script Properties) :
+  ┌──────────────────────────────┬─────────┬────────────────────────────────────┐
+  │ Propriété                    │ Défaut  │ Description                        │
+  ├──────────────────────────────┼─────────┼────────────────────────────────────┤
+  │ DMG_MIN_SPEED                │ 10      │ Vitesse min (km/h) pour dégât      │
+  │ DMG_LEGER_MAX                │ 25      │ Seuil léger→modéré                 │
+  │ DMG_MODERE_MAX               │ 50      │ Seuil modéré→sévère                │
+  │ DMG_SEVERE_MAX               │ 80      │ Seuil sévère→critique              │
+  │ DMG_BALLAST_LEGER            │ 5       │ Ballast (kg) sévérité légère       │
+  │ DMG_BALLAST_MODERE           │ 10      │ Ballast sévérité modérée           │
+  │ DMG_BALLAST_SEVERE           │ 20      │ Ballast sévérité sévère            │
+  │ DMG_BALLAST_CRITIQUE         │ 30      │ Ballast sévérité critique          │
+  │ DMG_RESTRICTOR_LEGER         │ 0       │ Restrictor sévérité légère         │
+  │ DMG_RESTRICTOR_MODERE        │ 5       │ Restrictor sévérité modérée        │
+  │ DMG_RESTRICTOR_SEVERE        │ 10      │ Restrictor sévérité sévère         │
+  │ DMG_RESTRICTOR_CRITIQUE      │ 15      │ Restrictor sévérité critique       │
+  │ DMG_REPAIR_LEGER             │ 8       │ Temps réparation (min) léger       │
+  │ DMG_REPAIR_MODERE            │ 15      │ Temps réparation modéré            │
+  │ DMG_REPAIR_SEVERE            │ 25      │ Temps réparation sévère            │
+  │ DMG_REPAIR_CRITIQUE          │ 40      │ Temps réparation critique          │
+  │ DMG_MERGE_MODE               │ worst   │ "worst" = pire choc / "sum" = cumul│
+  └──────────────────────────────┴─────────┴────────────────────────────────────┘
+*/
+
+function getDmgConfig() {
+  var p = PROPS;
+  return {
+    minSpeed:           Number(p.getProperty('DMG_MIN_SPEED'))           || 10,
+    legerMax:           Number(p.getProperty('DMG_LEGER_MAX'))           || 25,
+    modereMax:          Number(p.getProperty('DMG_MODERE_MAX'))          || 50,
+    severeMax:          Number(p.getProperty('DMG_SEVERE_MAX'))          || 80,
+    ballast:  { leger:  Number(p.getProperty('DMG_BALLAST_LEGER'))       || 5,
+                modere: Number(p.getProperty('DMG_BALLAST_MODERE'))      || 10,
+                severe: Number(p.getProperty('DMG_BALLAST_SEVERE'))      || 20,
+                critique:Number(p.getProperty('DMG_BALLAST_CRITIQUE'))   || 30 },
+    restrictor:{ leger: Number(p.getProperty('DMG_RESTRICTOR_LEGER'))   || 0,
+                modere: Number(p.getProperty('DMG_RESTRICTOR_MODERE'))   || 5,
+                severe: Number(p.getProperty('DMG_RESTRICTOR_SEVERE'))   || 10,
+                critique:Number(p.getProperty('DMG_RESTRICTOR_CRITIQUE'))|| 15 },
+    repair:   { leger:  Number(p.getProperty('DMG_REPAIR_LEGER'))        || 8,
+                modere: Number(p.getProperty('DMG_REPAIR_MODERE'))       || 15,
+                severe: Number(p.getProperty('DMG_REPAIR_SEVERE'))       || 25,
+                critique:Number(p.getProperty('DMG_REPAIR_CRITIQUE'))    || 40 },
+    mergeMode:          p.getProperty('DMG_MERGE_MODE')                  || 'worst',
+  };
+}
+
+// Mappe RelPosition {X,Y,Z} → id composant
+// Système de coordonnées AC : Z=avant, X=droite, Y=haut
+function collisionToComponent(rel) {
+  var x = rel.X || 0, y = rel.Y || 0, z = rel.Z || 0;
+  // Avant prononcé → refroidissement (radiateur)
+  if (z > 0.7)                          return 'refroidissement';
+  // Avant latéral → direction
+  if (z > 0.2 && Math.abs(x) > 0.25)   return 'direction';
+  // Arrière → transmission
+  if (z < -0.5)                         return 'transmission';
+  // Côtés → suspension
+  if (Math.abs(x) > 0.4)               return 'suspension';
+  // Dessous → châssis
+  if (y < -0.3)                         return 'chassis';
+  // Centre/général → moteur
+  return 'moteur';
+}
+
+// Vitesse → sévérité
+function speedToSeverity(speed, cfg) {
+  if (speed < cfg.minSpeed)  return null;         // ignoré
+  if (speed < cfg.legerMax)  return 'leger';
+  if (speed < cfg.modereMax) return 'modere';
+  if (speed < cfg.severeMax) return 'severe';
+  return 'critique';
+}
+
+// Sévérité → pénalités
+function severityToPenalties(sev, cfg) {
+  if (!sev || sev === 'intact' || sev === 'none') return { ballast_kg:0, restrictor:0, repair_min:0 };
+  return {
+    ballast_kg:  cfg.ballast[sev]   || 0,
+    restrictor:  cfg.restrictor[sev]|| 0,
+    repair_min:  cfg.repair[sev]    || 0,
+  };
+}
+
+// Score (0–100) depuis vitesse d'impact : 100 = intact, 0 = destruction totale
+function speedToScore(speed, cfg) {
+  if (speed < cfg.minSpeed)  return 100;
+  if (speed < cfg.legerMax)  return Math.round(100 - (speed - cfg.minSpeed) / (cfg.legerMax  - cfg.minSpeed) * 25);
+  if (speed < cfg.modereMax) return Math.round(75  - (speed - cfg.legerMax)  / (cfg.modereMax - cfg.legerMax)  * 25);
+  if (speed < cfg.severeMax) return Math.round(50  - (speed - cfg.modereMax) / (cfg.severeMax - cfg.modereMax) * 25);
+  return Math.max(0, Math.round(25 - (speed - cfg.severeMax) / 20 * 25));
+}
+
+// Traite les collisions d'une session → damage_components par pilote
+// collisions : tableau d'objets {Driver.Guid, ImpactSpeed, RelPosition, Type}
+// retourne : { guid: { compId: { speed, severity, score, ...penalties } } }
+function processCollisions(collisions, cfg) {
+  var result = {};
+  collisions.forEach(function(ev) {
+    var guid  = ev.Driver ? ev.Driver.Guid : null;
+    var speed = ev.ImpactSpeed || 0;
+    var rel   = ev.RelPosition || { X:0, Y:0, Z:0 };
+    var sev   = speedToSeverity(speed, cfg);
+    if (!guid || !sev) return; // ignore chocs non-dommageables
+
+    var compId = collisionToComponent(rel);
+    if (!result[guid]) result[guid] = {};
+
+    var existing = result[guid][compId];
+    if (!existing) {
+      result[guid][compId] = { speed: speed, severity: sev };
+    } else if (cfg.mergeMode === 'sum') {
+      // Accumulation : additionne les vitesses, recalcule sévérité
+      var newSpeed = Math.min(existing.speed + speed * 0.5, 120); // atténue la somme
+      result[guid][compId] = { speed: newSpeed, severity: speedToSeverity(newSpeed, cfg) || sev };
+    } else {
+      // Pire choc (défaut)
+      if (speed > existing.speed) {
+        result[guid][compId] = { speed: speed, severity: sev };
+      }
+    }
+  });
+  return result;
+}
+
 // Composants par défaut (100%, aucun dégât) si la feuille damage_components est vide
 var DEFAULT_COMPONENTS = [
   { id:'refroidissement', name_fr:'Refroidissement', name_en:'Cooling',    icon:'🌡' },
@@ -520,8 +651,25 @@ function importChampionship(data) {
   srSheet.clearContents();
   srSheet.appendRow(srHeaders);
 
-  var events = data.Events || [];
-  var totalResults = 0;
+  var events      = data.Events || [];
+  var totalResults= 0;
+  var totalDamage = 0;
+  var cfg         = getDmgConfig();
+
+  // ── Feuille damage_components (vider les entrées de ce championnat) ──
+  var dcSheet  = getOrCreateSheet('damage_components',
+    ['driver_guid','stage_id','component_id','score','severity','ballast_kg','restrictor','repair_min','repaired']);
+  // Récupère les event IDs de ce championnat pour nettoyer les anciennes entrées
+  var champEventIds = (data.Events || []).map(function(e, i) { return e.ID || ('event_' + i); });
+  var dcData = dcSheet.getDataRange().getValues();
+  var dcHeaders = dcData[0];
+  var dcStageIdx = dcHeaders.indexOf('stage_id');
+  // Supprime en partant du bas pour ne pas décaler les indices
+  for (var di = dcData.length - 1; di >= 1; di--) {
+    if (champEventIds.indexOf(String(dcData[di][dcStageIdx])) !== -1) {
+      dcSheet.deleteRow(di + 1);
+    }
+  }
 
   for (var i = 0; i < events.length; i++) {
     var event  = events[i];
@@ -612,9 +760,44 @@ function importChampionship(data) {
       srSheet.getRange(srSheet.getLastRow() + 1, 1, rowsBatch.length, srHeaders.length).setValues(rowsBatch);
       totalResults += rowsBatch.length;
     }
+
+    // ── Calcul des dégâts depuis collisions RACE ──
+    var raceEvents    = raceResults.Events || [];
+    if (raceEvents.length > 0) {
+      var dmgByDriver = processCollisions(raceEvents, cfg);
+      var eventStageId = event.ID || ('event_' + i);
+
+      // Mapping guid → (car_model, skin) depuis Cars
+      var carInfo = {};
+      cars.forEach(function(car) {
+        if (car.Driver) carInfo[car.Driver.Guid] = { car: car.Model || '', skin: car.Skin || '' };
+      });
+
+      Object.keys(dmgByDriver).forEach(function(guid) {
+        var driverDmg = dmgByDriver[guid];
+        Object.keys(driverDmg).forEach(function(compId) {
+          var hit  = driverDmg[compId];
+          var sev  = hit.severity || 'none';
+          var pen  = severityToPenalties(sev, cfg);
+          var score= speedToScore(hit.speed, cfg);
+          dcSheet.appendRow([
+            guid,
+            eventStageId,
+            compId,
+            score,
+            sev,
+            pen.ballast_kg,
+            pen.restrictor,
+            pen.repair_min,
+            false  // repaired
+          ]);
+          totalDamage++;
+        });
+      });
+    }
   }
 
-  return { ok: true, events: events.length, results: totalResults };
+  return { ok: true, events: events.length, results: totalResults, damage_entries: totalDamage };
 }
 
 // ──────────────────────────────────────────────────────────────

@@ -167,7 +167,7 @@ function getDriverData(steamId, stageId) {
   for (var i = 1; i < dsData.length; i++) {
     if (String(dsData[i][dsHeaders.indexOf('driver_guid')]) === String(steamId)) { driverRow = dsData[i]; break; }
   }
-  if (!driverRow) throw new Error('driver_not_found:' + steamId);
+  if (!driverRow) throw new Error('driver_not_found');
   function dsVal(col) { var idx = dsHeaders.indexOf(col); return idx >= 0 ? driverRow[idx] : null; }
 
   var dcSheet  = getSheet('damage_components');

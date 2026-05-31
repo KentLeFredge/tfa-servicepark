@@ -1022,7 +1022,14 @@ async function loadFromGAS() {
   }
   try {
     const data = await gasGet('get_driver');
-    if (data.error) throw new Error(data.error);
+    if (data.error) {
+      const msg = data.error === 'driver_not_found'
+        ? 'Pilote non trouvé — contacte l\'administrateur.'
+        : data.error === 'unauthorized'
+        ? 'Session expirée — reconnecte-toi.'
+        : 'Erreur de chargement — réessaie.';
+      showLoErr(msg); return;
+    }
     /* Normalise les champs name_fr/name_en si absents (compatibilité) */
     if (data.components) {
       data.components = data.components.map(c => ({

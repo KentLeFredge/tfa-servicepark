@@ -236,6 +236,46 @@ body { font-family:'Barlow Condensed',sans-serif; background:#3a4048; display:fl
 .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--bg-dark); border:1px solid var(--cyan); color:var(--cyan); padding:8px 20px; font-size:13px; font-weight:700; letter-spacing:0.06em; opacity:0; pointer-events:none; transition:opacity 0.3s; z-index:100; }
 .toast.show { opacity:1; }
 
+/* ── ADMIN PANEL ── */
+.admin-toolbar { display:flex; align-items:center; gap:10px; padding:12px 16px; background:var(--bg-panel); border-bottom:2px solid var(--border); flex-wrap:wrap; }
+.admin-stage-badge { font-size:12px; font-weight:700; padding:4px 12px; border:1px solid var(--yellow); color:var(--yellow); letter-spacing:0.06em; }
+.admin-stats { display:flex; gap:8px; padding:10px 16px; background:var(--bg-mid); border-bottom:1px solid var(--border); }
+.admin-stat { background:var(--bg-panel); border:1px solid var(--border); padding:8px 14px; text-align:center; flex:1; }
+.admin-stat-val { font-size:1.6rem; font-weight:800; line-height:1; }
+.admin-stat-val.cyan   { color:var(--cyan); }
+.admin-stat-val.green  { color:var(--green); }
+.admin-stat-val.yellow { color:var(--yellow); }
+.admin-stat-val.red    { color:var(--red); }
+.admin-stat-label { font-size:9px; color:var(--text-dim); letter-spacing:0.08em; text-transform:uppercase; margin-top:3px; }
+.admin-table-wrap { overflow-y:auto; flex:1; }
+.admin-table { width:100%; border-collapse:collapse; font-size:12px; }
+.admin-table th { font-size:9px; font-weight:700; color:var(--text-dim); letter-spacing:0.08em; text-transform:uppercase; padding:7px 10px; text-align:left; background:var(--bg-panel); border-bottom:1px solid var(--border); white-space:nowrap; position:sticky; top:0; z-index:1; }
+.admin-table td { padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+.admin-table tr:hover td { background:rgba(255,255,255,0.02); }
+.admin-status { display:inline-block; padding:1px 6px; font-size:9px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; }
+.admin-status.ok      { background:rgba(92,184,92,0.15);  color:var(--green); border:1px solid var(--green); }
+.admin-status.pending { background:rgba(240,173,78,0.15); color:var(--yellow); border:1px solid var(--yellow); }
+.admin-status.none    { background:rgba(90,100,110,0.15); color:var(--text-dim); border:1px solid var(--border-l); }
+.admin-repair-bar { height:5px; background:var(--border); border-radius:2px; width:50px; overflow:hidden; display:inline-block; vertical-align:middle; margin-right:4px; }
+.admin-repair-fill { height:100%; background:var(--cyan); border-radius:2px; }
+.admin-detail { display:none; }
+.admin-detail td { background:var(--bg-dark); padding:8px 14px; }
+.admin-chips { display:flex; flex-wrap:wrap; gap:5px; }
+.admin-chip { padding:2px 8px; font-size:10px; border:1px solid var(--border); background:var(--bg-panel); }
+.admin-chip.repaired { border-color:var(--green); color:var(--green); }
+.admin-chip.damaged  { border-color:var(--yellow); color:var(--yellow); }
+.admin-chip.severe   { border-color:var(--red); color:var(--red); }
+/* Import modal */
+.admin-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:300; align-items:center; justify-content:center; }
+.admin-modal.open { display:flex; }
+.admin-modal-box { background:var(--bg-dark); border:2px solid var(--border); padding:24px; max-width:520px; width:90%; }
+.admin-modal-box h3 { font-size:13px; font-weight:700; color:var(--cyan); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:12px; }
+.admin-modal-box p  { font-size:11px; color:var(--text-dim); margin-bottom:10px; font-family:'Barlow',sans-serif; line-height:1.5; }
+.admin-modal-box textarea { width:100%; height:160px; background:var(--bg); border:1px solid var(--border-l); color:var(--text); font-family:monospace; font-size:11px; padding:8px; resize:vertical; outline:none; }
+.admin-modal-box textarea:focus { border-color:var(--cyan); }
+.admin-modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+.admin-import-result { margin-top:10px; font-size:12px; padding:6px 10px; border-left:3px solid var(--cyan); background:rgba(91,192,222,0.06); display:none; font-family:'Barlow',sans-serif; }
+
 /* ── LOGIN OVERLAY ── */
 #login-overlay {
   position:fixed; inset:0; background:rgba(30,36,40,0.97);
@@ -327,6 +367,8 @@ const CONFIG = {
       <button class="nav-tab" onclick="goTab('next')"    data-tab="next"    data-i18n="nav_next">—</button>
       <span class="nav-sep">|</span>
       <button class="nav-tab" onclick="goTab('quit')"    data-tab="quit"    data-i18n="nav_quit">—</button>
+      <span class="nav-sep" id="admin-sep" style="display:none">|</span>
+      <button class="nav-tab" onclick="goTab('admin')" data-tab="admin" id="admin-tab" style="display:none;color:#f0ad4e;">— ADMIN</button>
     </div>
     <div class="nav-right">
       <div class="lang-toggle">
@@ -598,7 +640,56 @@ const CONFIG = {
     </div>
   </div>
 
+  <!-- ══════════════════════════════════
+       ONGLET ADMIN
+  ══════════════════════════════════ -->
+  <div class="panel" id="panel-admin">
+    <div class="admin-toolbar">
+      <div class="admin-stage-badge" id="admin-stage-badge">—</div>
+      <button class="btn primary" id="admin-btn-refresh" onclick="adminRefresh()">↻ Rafraîchir</button>
+      <button class="btn" style="border-color:var(--green);color:var(--green);" id="admin-btn-import" onclick="adminOpenImport()">⬆ Importer entry list</button>
+      <input type="text" id="admin-inp-stage" placeholder="etape_02" style="font-family:'Barlow Condensed',sans-serif;font-size:13px;padding:5px 8px;background:var(--bg-panel);border:1px solid var(--border-l);color:var(--text);width:110px;" />
+      <button class="btn" onclick="adminSetStage()">Changer étape</button>
+      <button class="btn danger" onclick="adminResetStage()">⚠ Reset</button>
+    </div>
+    <div class="admin-stats" id="admin-stats">
+      <div class="admin-stat"><div class="admin-stat-val cyan" id="as-total">—</div><div class="admin-stat-label">Pilotes</div></div>
+      <div class="admin-stat"><div class="admin-stat-val green" id="as-validated">—</div><div class="admin-stat-label">Validés</div></div>
+      <div class="admin-stat"><div class="admin-stat-val yellow" id="as-pending">—</div><div class="admin-stat-label">En cours</div></div>
+      <div class="admin-stat"><div class="admin-stat-val red" id="as-none">—</div><div class="admin-stat-label">Pas ouvert</div></div>
+    </div>
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>#</th><th>Pilote</th><th>Voiture</th><th>Statut</th>
+            <th>Ballast</th><th>Restr.</th><th>Réparations</th><th>Activité</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="admin-tbody"></tbody>
+      </table>
+    </div>
+    <div class="bottom">
+      <div class="stage-label">Admin — <strong id="admin-stagename">—</strong></div>
+    </div>
+  </div>
+
 </div>
+
+<!-- ══ IMPORT MODAL ══ -->
+<div class="admin-modal" id="admin-import-modal">
+  <div class="admin-modal-box">
+    <h3>Importer Entry List ACSM</h3>
+    <p>Colle le contenu du fichier JSON ACSM (format <code style="color:var(--cyan)">{"Cars":[...]}</code>).<br>Pilotes existants mis à jour, nouveaux créés.</p>
+    <textarea id="admin-import-ta" placeholder='{"Cars": [{"Driver": {"Guid": "...", "Name": "..."}, "Model": "...", "Skin": "..."}]}'></textarea>
+    <div class="admin-import-result" id="admin-import-result"></div>
+    <div class="admin-modal-actions">
+      <button class="btn" onclick="document.getElementById('admin-import-modal').classList.remove('open')">Annuler</button>
+      <button class="btn primary" onclick="adminDoImport()">Importer</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -730,6 +821,7 @@ let AUTH = {
   token:   null,
   steamId: null,
   demo:    false,
+  isAdmin: false,
 };
 
 function buildSteamLoginUrl() {
@@ -847,8 +939,10 @@ function initAuth() {
   if (token && steamId) {
     AUTH.token   = token;
     AUTH.steamId = steamId;
+    AUTH.isAdmin = urlParams.get('is_admin') === '1';
     sessionStorage.setItem('tfa_token',    token);
     sessionStorage.setItem('tfa_steam_id', steamId);
+    sessionStorage.setItem('tfa_is_admin', AUTH.isAdmin ? '1' : '0');
     history.replaceState({}, '', location.pathname);
     showLoading();
     loadFromGAS();
@@ -861,6 +955,7 @@ function initAuth() {
   if (sToken && sSteamId) {
     AUTH.token   = sToken;
     AUTH.steamId = sSteamId;
+    AUTH.isAdmin = sessionStorage.getItem('tfa_is_admin') === '1';
     showLoading();
     loadFromGAS();
     return;
@@ -940,6 +1035,7 @@ function goTab(tab) {
   if (tab === 'quit')      renderQuit();
   if (tab === 'standings') renderStandings();
   if (tab === 'info')      renderInfo();
+  if (tab === 'admin')     adminRefresh();
 }
 
 /* ════════════════════════════════════
@@ -977,6 +1073,13 @@ function initUI() {
   applyTranslations();
   document.getElementById('sel-part-name').textContent = t('select_prompt');
   document.getElementById('damage-desc').textContent   = t('default_desc');
+
+  // Activer onglet admin si l'utilisateur est admin
+  if (AUTH.isAdmin) {
+    adminShowTab();
+    adminRefresh(); // Précharger les données admin en arrière-plan
+  }
+
   renderAll();
 }
 
@@ -1416,6 +1519,157 @@ function showToast(msg) {
   const el=document.getElementById('toast');
   el.textContent=msg; el.classList.add('show');
   clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+/* ════════════════════════════════════
+   ADMIN
+   ════════════════════════════════════ */
+let ADMIN_DATA = null;
+
+function adminShowTab() {
+  document.getElementById('admin-tab').style.display = 'flex';
+  document.getElementById('admin-sep').style.display = 'flex';
+}
+
+async function adminRefresh() {
+  const btn = document.getElementById('admin-btn-refresh');
+  btn.textContent = '…'; btn.disabled = true;
+  try {
+    const data = await gasGet('admin_overview');
+    if (data.error) throw new Error(data.error);
+    adminRender(data);
+  } catch(e) { showToast('Admin erreur : ' + e.message); }
+  finally { btn.textContent = '↻ Rafraîchir'; btn.disabled = false; }
+}
+
+function adminRender(data) {
+  ADMIN_DATA = data;
+  const stageId  = data.stage_id || '—';
+  const drivers  = data.drivers  || [];
+
+  document.getElementById('admin-stage-badge').textContent = stageId;
+  document.getElementById('admin-stagename').textContent   = stageId;
+  document.getElementById('admin-inp-stage').placeholder   = stageId;
+
+  const validated = drivers.filter(d => d.validated).length;
+  const pending   = drivers.filter(d => !d.validated && d.repair_used_min > 0).length;
+  const none      = drivers.filter(d => !d.validated && d.repair_used_min === 0).length;
+
+  document.getElementById('as-total').textContent     = drivers.length;
+  document.getElementById('as-validated').textContent = validated;
+  document.getElementById('as-pending').textContent   = pending;
+  document.getElementById('as-none').textContent      = none;
+
+  const sorted = [...drivers].sort((a, b) => {
+    const rank = d => d.validated ? 2 : d.repair_used_min > 0 ? 1 : 0;
+    return rank(a) - rank(b);
+  });
+
+  const tbody = document.getElementById('admin-tbody');
+  tbody.innerHTML = '';
+  sorted.forEach((d, i) => {
+    const status    = d.validated ? 'ok' : d.repair_used_min > 0 ? 'pending' : 'none';
+    const statusLbl = d.validated ? '✓ Validé' : d.repair_used_min > 0 ? '🔧 En cours' : '— Pas ouvert';
+    const balHtml   = d.ballast_kg  > 0 ? `<span style="color:var(--yellow);font-weight:700">+${d.ballast_kg}kg</span>` : '<span style="color:var(--text-dim)">—</span>';
+    const resHtml   = d.restrictor  > 0 ? `<span style="color:var(--red);font-weight:700">${d.restrictor}</span>` : '<span style="color:var(--text-dim)">—</span>';
+    const repPct    = d.damaged_count > 0 ? Math.round(d.repaired_count / d.damaged_count * 100) : 0;
+    const repLabel  = d.damaged_count > 0 ? `${d.repaired_count}/${d.damaged_count}` : '—';
+    const lastUpd   = d.last_updated ? new Date(d.last_updated).toLocaleString('fr-FR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+
+    const tr = document.createElement('tr');
+    tr.style.cursor = 'pointer';
+    tr.onclick = () => adminToggleDetail(d.driver_guid);
+    tr.innerHTML = `
+      <td style="color:var(--text-dim);font-size:10px">${i+1}</td>
+      <td><strong style="font-size:13px">${d.driver_name||'—'}</strong></td>
+      <td style="font-size:10px;color:var(--text-dim)">${d.car_model||'—'}</td>
+      <td><span class="admin-status ${status}">${statusLbl}</span></td>
+      <td>${balHtml}</td><td>${resHtml}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="admin-repair-bar"><div class="admin-repair-fill" style="width:${repPct}%"></div></div>
+          <span style="font-size:10px;color:var(--text-dim)">${repLabel}</span>
+        </div>
+      </td>
+      <td style="font-size:10px;color:var(--text-dim)">${lastUpd}</td>
+      <td style="font-size:10px;color:var(--text-dim)">▼</td>
+    `;
+    tbody.appendChild(tr);
+
+    // Détail composants
+    const comps = d.components || [];
+    const chipsHtml = comps.length === 0
+      ? '<span style="color:var(--text-dim);font-size:11px;font-style:italic">Aucun composant pour cette étape</span>'
+      : comps.map(c => {
+          const cls = c.repaired ? 'repaired' : c.severity === 'critique' || c.severity === 'severe' ? 'severe' : c.severity !== 'intact' && c.severity !== 'none' ? 'damaged' : '';
+          const icon = c.repaired ? '✓' : (cls ? '⚠' : '○');
+          const pen = [];
+          if (!c.repaired && c.ballast_kg > 0) pen.push(`+${c.ballast_kg}kg`);
+          if (!c.repaired && c.restrictor  > 0) pen.push(`R:${c.restrictor}`);
+          return `<span class="admin-chip ${cls}">${icon} ${c.component_id}${pen.length ? ' · '+pen.join(' ') : ''}</span>`;
+        }).join('');
+
+    const detailTr = document.createElement('tr');
+    detailTr.className = 'admin-detail';
+    detailTr.id = 'admin-detail-' + d.driver_guid;
+    detailTr.innerHTML = `<td colspan="9"><div class="admin-chips" style="padding:8px 10px">${chipsHtml}</div></td>`;
+    tbody.appendChild(detailTr);
+  });
+}
+
+function adminToggleDetail(guid) {
+  const el = document.getElementById('admin-detail-' + guid);
+  if (el) el.style.display = el.style.display === 'table-row' ? 'none' : 'table-row';
+}
+
+function adminOpenImport() {
+  document.getElementById('admin-import-ta').value = '';
+  document.getElementById('admin-import-result').style.display = 'none';
+  document.getElementById('admin-import-modal').classList.add('open');
+}
+
+async function adminDoImport() {
+  const raw = document.getElementById('admin-import-ta').value.trim();
+  if (!raw) return;
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch(e) { showToast('JSON invalide'); return; }
+  const cars = parsed.Cars || parsed.cars || parsed.entries || [];
+  if (!cars.length) { showToast('Aucun pilote trouvé'); return; }
+  try {
+    const data = await gasPost('import_entry_list', {
+      cars: cars,
+      stage_id: ADMIN_DATA ? ADMIN_DATA.stage_id : CONFIG.CURRENT_STAGE_ID
+    });
+    if (data.error) throw new Error(data.error);
+    const res = document.getElementById('admin-import-result');
+    res.innerHTML = `✓ <strong>${data.inserted}</strong> créés, <strong>${data.updated}</strong> mis à jour`;
+    res.style.display = 'block';
+    showToast(`Import OK : ${data.inserted} créés, ${data.updated} mis à jour`);
+    await adminRefresh();
+  } catch(e) { showToast('Erreur import : ' + e.message); }
+}
+
+async function adminSetStage() {
+  const stageId = document.getElementById('admin-inp-stage').value.trim();
+  if (!stageId) return;
+  if (!confirm(`Changer l'étape active en "${stageId}" ?`)) return;
+  try {
+    const data = await gasPost('set_stage', { stage_id: stageId });
+    if (data.error) throw new Error(data.error);
+    showToast(`Étape → ${stageId}`);
+    await adminRefresh();
+  } catch(e) { showToast('Erreur : ' + e.message); }
+}
+
+async function adminResetStage() {
+  const stageId = ADMIN_DATA ? ADMIN_DATA.stage_id : CONFIG.CURRENT_STAGE_ID;
+  if (!confirm(`⚠ RESET de l'étape "${stageId}" ?\n\nRemet à zéro validated, ballast, restrictor et repaired pour tous les pilotes.\n\nIRRÉVERSIBLE.`)) return;
+  try {
+    const data = await gasPost('reset_stage', { stage_id: stageId });
+    if (data.error) throw new Error(data.error);
+    showToast(`Étape ${stageId} remise à zéro`);
+    await adminRefresh();
+  } catch(e) { showToast('Erreur : ' + e.message); }
 }
 
 /* ════════════════════════════════════

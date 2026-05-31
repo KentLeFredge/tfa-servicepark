@@ -271,10 +271,24 @@ body { font-family:'Barlow Condensed',sans-serif; background:#3a4048; display:fl
 .admin-modal-box { background:var(--bg-dark); border:2px solid var(--border); padding:24px; max-width:520px; width:90%; }
 .admin-modal-box h3 { font-size:13px; font-weight:700; color:var(--cyan); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:12px; }
 .admin-modal-box p  { font-size:11px; color:var(--text-dim); margin-bottom:10px; font-family:'Barlow',sans-serif; line-height:1.5; }
-.admin-modal-box textarea { width:100%; height:160px; background:var(--bg); border:1px solid var(--border-l); color:var(--text); font-family:monospace; font-size:11px; padding:8px; resize:vertical; outline:none; }
-.admin-modal-box textarea:focus { border-color:var(--cyan); }
 .admin-modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
 .admin-import-result { margin-top:10px; font-size:12px; padding:6px 10px; border-left:3px solid var(--cyan); background:rgba(91,192,222,0.06); display:none; font-family:'Barlow',sans-serif; }
+/* Drop zone */
+.admin-dropzone {
+  border:2px dashed var(--border-l); background:var(--bg-panel);
+  padding:32px 20px; text-align:center; cursor:pointer;
+  transition:border-color 0.15s, background 0.15s; position:relative;
+}
+.admin-dropzone:hover, .admin-dropzone.drag-over {
+  border-color:var(--cyan); background:rgba(91,192,222,0.06);
+}
+.admin-dropzone input[type=file] {
+  position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer;
+}
+.admin-dropzone-icon { font-size:2rem; margin-bottom:8px; }
+.admin-dropzone-label { font-size:13px; color:var(--text-dim); }
+.admin-dropzone-label strong { color:var(--cyan); }
+.admin-dropzone-file { margin-top:10px; font-size:12px; color:var(--green); font-family:'Barlow',sans-serif; display:none; }
 
 /* ── LOGIN OVERLAY ── */
 #login-overlay {
@@ -681,8 +695,13 @@ const CONFIG = {
 <div class="admin-modal" id="admin-import-modal">
   <div class="admin-modal-box">
     <h3>Importer Entry List ACSM</h3>
-    <p>Colle le contenu du fichier JSON ACSM (format <code style="color:var(--cyan)">{"Cars":[...]}</code>).<br>Pilotes existants mis à jour, nouveaux créés.</p>
-    <textarea id="admin-import-ta" placeholder='{"Cars": [{"Driver": {"Guid": "...", "Name": "..."}, "Model": "...", "Skin": "..."}]}'></textarea>
+    <p>Dépose le fichier JSON ACSM ou clique pour le sélectionner.<br>Pilotes existants mis à jour, nouveaux créés.</p>
+    <div class="admin-dropzone" id="admin-dropzone">
+      <input type="file" id="admin-file-input" accept=".json,application/json" />
+      <div class="admin-dropzone-icon">📂</div>
+      <div class="admin-dropzone-label">Dépose le fichier ici ou <strong>clique pour parcourir</strong></div>
+    </div>
+    <div class="admin-dropzone-file" id="admin-dropzone-file"></div>
     <div class="admin-import-result" id="admin-import-result"></div>
     <div class="admin-modal-actions">
       <button class="btn" onclick="document.getElementById('admin-import-modal').classList.remove('open')">Annuler</button>
@@ -1643,19 +1662,61 @@ async function adminExport() {
   finally { btn.innerHTML = '⬇ Exporter entry list'; btn.disabled = false; }
 }
 
+let _importParsed = null;
+
 function adminOpenImport() {
-  document.getElementById('admin-import-ta').value = '';
+  _importParsed = null;
   document.getElementById('admin-import-result').style.display = 'none';
+  const fileLabel = document.getElementById('admin-dropzone-file');
+  fileLabel.style.display = 'none'; fileLabel.textContent = '';
+  document.getElementById('admin-file-input').value = '';
+  document.getElementById('admin-dropzone').classList.remove('drag-over');
   document.getElementById('admin-import-modal').classList.add('open');
 }
 
+function adminLoadFile(file) {
+  if (!file || !file.name.endsWith('.json')) { showToast('Fichier JSON requis'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      _importParsed = JSON.parse(e.target.result);
+      const count = (_importParsed.Cars || _importParsed.cars || []).length;
+      const label = document.getElementById('admin-dropzone-file');
+      label.textContent = `✓ ${file.name} — ${count} pilote(s) détecté(s)`;
+      label.style.display = 'block';
+      document.getElementById('admin-dropzone-icon') && (document.getElementById('admin-dropzone').querySelector('.admin-dropzone-icon').textContent = '✅');
+    } catch(err) { showToast('Fichier JSON invalide'); _importParsed = null; }
+  };
+  reader.readAsText(file);
+}
+
+// File input change
+document.addEventListener('DOMContentLoaded', function() {
+  const input = document.getElementById('admin-file-input');
+  if (input) {
+    input.addEventListener('change', function() {
+      if (this.files[0]) adminLoadFile(this.files[0]);
+    });
+  }
+  // Drag & drop
+  const zone = document.getElementById('admin-dropzone');
+  if (zone) {
+    zone.addEventListener('dragover',  function(e) { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', function()  { zone.classList.remove('drag-over'); });
+    zone.addEventListener('drop',      function(e) {
+      e.preventDefault(); zone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) adminLoadFile(file);
+    });
+  }
+});
+
 async function adminDoImport() {
-  const raw = document.getElementById('admin-import-ta').value.trim();
-  if (!raw) return;
-  let parsed;
-  try { parsed = JSON.parse(raw); } catch(e) { showToast('JSON invalide'); return; }
-  const cars = parsed.Cars || parsed.cars || parsed.entries || [];
-  if (!cars.length) { showToast('Aucun pilote trouvé'); return; }
+  if (!_importParsed) { showToast('Sélectionne un fichier d\'abord'); return; }
+  const cars = _importParsed.Cars || _importParsed.cars || _importParsed.entries || [];
+  if (!cars.length) { showToast('Aucun pilote trouvé dans le fichier'); return; }
+  const btn = document.querySelector('#admin-import-modal .btn.primary');
+  btn.textContent = '…'; btn.disabled = true;
   try {
     const data = await gasPost('import_entry_list', {
       cars: cars,
@@ -1668,6 +1729,7 @@ async function adminDoImport() {
     showToast(`Import OK : ${data.inserted} créés, ${data.updated} mis à jour`);
     await adminRefresh();
   } catch(e) { showToast('Erreur import : ' + e.message); }
+  finally { btn.textContent = 'Importer'; btn.disabled = false; }
 }
 
 async function adminSetStage() {

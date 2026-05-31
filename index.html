@@ -648,6 +648,7 @@ const CONFIG = {
       <div class="admin-stage-badge" id="admin-stage-badge">—</div>
       <button class="btn primary" id="admin-btn-refresh" onclick="adminRefresh()">↻ Rafraîchir</button>
       <button class="btn" style="border-color:var(--green);color:var(--green);" id="admin-btn-import" onclick="adminOpenImport()">⬆ Importer entry list</button>
+      <button class="btn" style="border-color:var(--cyan);color:var(--cyan);" id="admin-btn-export" onclick="adminExport()">⬇ Exporter entry list</button>
       <input type="text" id="admin-inp-stage" placeholder="etape_02" style="font-family:'Barlow Condensed',sans-serif;font-size:13px;padding:5px 8px;background:var(--bg-panel);border:1px solid var(--border-l);color:var(--text);width:110px;" />
       <button class="btn" onclick="adminSetStage()">Changer étape</button>
       <button class="btn danger" onclick="adminResetStage()">⚠ Reset</button>
@@ -1620,6 +1621,26 @@ function adminRender(data) {
 function adminToggleDetail(guid) {
   const el = document.getElementById('admin-detail-' + guid);
   if (el) el.style.display = el.style.display === 'table-row' ? 'none' : 'table-row';
+}
+
+async function adminExport() {
+  const btn = document.getElementById('admin-btn-export');
+  btn.textContent = '…'; btn.disabled = true;
+  try {
+    const data = await gasGet('export_entry_list');
+    if (data.error) throw new Error(data.error);
+    const stageId  = data.Stage || CONFIG.CURRENT_STAGE_ID;
+    const filename = `entry_list_${stageId}_handicaps.json`;
+    const blob     = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url      = URL.createObjectURL(blob);
+    const a        = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast(`Export téléchargé : ${filename}`);
+  } catch(e) { showToast('Erreur export : ' + e.message); }
+  finally { btn.innerHTML = '⬇ Exporter entry list'; btn.disabled = false; }
 }
 
 function adminOpenImport() {

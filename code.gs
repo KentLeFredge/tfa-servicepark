@@ -28,6 +28,9 @@ function doGet(e) {
   if (action === 'admin_overview')  return withAdminToken(e, function() {
     return jsonResponse(getAdminOverview());
   });
+  if (action === 'export_entry_list') return withAdminToken(e, function() {
+    return jsonResponse(exportEntryList());
+  });
   return jsonResponse({ error: 'unknown_action' });
 }
 
@@ -379,6 +382,51 @@ function resetStage(stageId) {
       dcSheet.getRange(j + 1, dcHeaders.indexOf('repaired') + 1).setValue(false);
   }
   return { ok: true, stage_id: stageId };
+}
+
+// ──────────────────────────────────────────────────────────────
+// ADMIN — EXPORT ENTRY LIST (format ACSM, ballast/restrictor mis à jour)
+// ──────────────────────────────────────────────────────────────
+
+function exportEntryList() {
+  var dsSheet  = getSheet('driver_state');
+  var dsData   = dsSheet.getDataRange().getValues();
+  var dsHeaders= dsData[0];
+
+  var cars = [];
+  for (var i = 1; i < dsData.length; i++) {
+    var row = dsData[i];
+    var dv  = (function(r) { return function(col) { var idx = dsHeaders.indexOf(col); return idx >= 0 ? r[idx] : null; }; })(row);
+    var guid     = String(dv('driver_guid')  || '');
+    var name     = String(dv('driver_name')  || '');
+    var model    = String(dv('car_model')    || '');
+    var skin     = String(dv('skin')         || '');
+    var ballast  = Number(dv('ballast_kg'))  || 0;
+    var restrict = Number(dv('restrictor'))  || 0;
+    if (!guid) continue;
+    cars.push({
+      BallastKG:  ballast,
+      CarId:      i - 1,
+      Driver: {
+        Guid:      guid,
+        GuidsList: [guid],
+        Name:      name,
+        Nation:    '',
+        Team:      ''
+      },
+      Model:      model,
+      Restrictor: restrict,
+      Skin:       skin
+    });
+  }
+
+  var stageId = PROPS.getProperty('CURRENT_STAGE_ID') || 'unknown';
+  return {
+    Version:  7,
+    Stage:    stageId,
+    ExportedAt: new Date().toISOString(),
+    Cars:     cars
+  };
 }
 
 // ──────────────────────────────────────────────────────────────

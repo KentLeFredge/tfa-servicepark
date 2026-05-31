@@ -5,71 +5,67 @@
 
 var PROPS = PropertiesService.getScriptProperties();
 
-// ──────────────────────────────────────────────────────────────
-// ENTRY POINTS
-// ──────────────────────────────────────────────────────────────
-
 function doGet(e) {
   var action = e.parameter.action || '';
-
-  // Steam callback after OpenID redirect
-  if (action === 'steam_callback') {
-    return handleSteamCallback(e);
-  }
-
-  // Read driver data (requires valid token)
-  if (action === 'get_driver') {
-    return withAuth(e, function(steamId) {
-      var stageId = e.parameter.stage_id || PROPS.getProperty('CURRENT_STAGE_ID');
-      var data = getDriverData(steamId, stageId);
-      return jsonResponse(data);
-    });
-  }
-
-  // Save repair choices (idempotent)
-  if (action === 'save_repairs') {
-    return withAuth(e, function(steamId) {
-      var stageId = e.parameter.stage_id || PROPS.getProperty('CURRENT_STAGE_ID');
-      var components = JSON.parse(e.parameter.components || '[]');
-      saveRepairs(steamId, stageId, components);
-      return jsonResponse({ ok: true });
-    });
-  }
-
-  // Validate (irreversible)
-  if (action === 'validate') {
-    return withAuth(e, function(steamId) {
-      var stageId = e.parameter.stage_id || PROPS.getProperty('CURRENT_STAGE_ID');
-      validateRepairs(steamId, stageId);
-      return jsonResponse({ ok: true });
-    });
-  }
-
-  return jsonResponse({ error: 'unknown_action' }, 400);
+  if (action === 'steam_callback') return handleSteamCallback(e);
+  if (action === 'get_driver') return withAuth(e, function(steamId) {
+    var stageId = e.parameter.stage_id || PROPS.getProperty('CURRENT_STAGE_ID');
+    return jsonResponse(getDriverData(steamId, stageId));
+  });
+  if (action === 'save_repairs') return withAuth(e, function(steamId) {
+    var stageId = e.parameter.stage_id || PROPS.getProperty('CURRENT_STAGE_ID');
+    saveRepairs(steamId, stageId, JSON.parse(e.parameter.components || '[]'));
+    return jsonResponse({ ok: true });
+  });
+  if (action === 'validate') return withAuth(e, function(steamId) {
+    validateRepairs(steamId, e.parameter.stage_id || PROPS.getProperty('CURRENT_STAGE_ID'));
+    return jsonResponse({ ok: true });
+  });
+  // ── ADMIN (protégé par ADMIN_SECRET) ──
+  if (action === 'admin_overview') return withAdmin(e, function() {
+    return jsonResponse(getAdminOverview());
+  });
+  return jsonResponse({ error: 'unknown_action' });
 }
 
 function doPost(e) {
   var action = e.parameter.action || '';
+  if (action === 'save_repairs') return withAuth(e, function(steamId) {
+    var body = JSON.parse(e.postData.contents || '{}');
+    saveRepairs(steamId, e.parameter.stage_id || PROPS.getProperty('CURRENT_STAGE_ID'), body.components || []);
+    return jsonResponse({ ok: true });
+  });
+  if (action === 'validate') return withAuth(e, function(steamId) {
+    validateRepairs(steamId, e.parameter.stage_id || PROPS.getProperty('CURRENT_STAGE_ID'));
+    return jsonResponse({ ok: true });
+  });
+  // ── ADMIN ──
+  if (action === 'import_entry_list') return withAdmin(e, function() {
+    var body = JSON.parse(e.postData.contents || '{}');
+    return jsonResponse(importEntryList(body.cars || [], body.stage_id || PROPS.getProperty('CURRENT_STAGE_ID')));
+  });
+  if (action === 'reset_stage') return withAdmin(e, function() {
+    var body = JSON.parse(e.postData.contents || '{}');
+    return jsonResponse(resetStage(body.stage_id || PROPS.getProperty('CURRENT_STAGE_ID')));
+  });
+  if (action === 'set_stage') return withAdmin(e, function() {
+    var body = JSON.parse(e.postData.contents || '{}');
+    PROPS.setProperty('CURRENT_STAGE_ID', body.stage_id);
+    return jsonResponse({ ok: true, stage_id: body.stage_id });
+  });
+  return jsonResponse({ error: 'unknown_action' });
+}
 
-  if (action === 'save_repairs') {
-    return withAuth(e, function(steamId) {
-      var stageId = e.parameter.stage_id || PROPS.getProperty('CURRENT_STAGE_ID');
-      var body = JSON.parse(e.postData.contents || '{}');
-      var components = body.components || [];
-      saveRepairs(steamId, stageId, components);
-      return jsonResponse({ ok: true });
-    });
-  }
+// ──────────────────────────────────────────────────────────────
+// ADMIN AUTH
+// ──────────────────────────────────────────────────────────────
 
-  if (action === 'validate') {
-    return withAuth(e, function(steamId) {
-      var stageId = e.parameter.stage_id || PROPS.getProperty('CURRENT_STAGE_ID');
-      validateRepairs(steamId, stageId);
-      return jsonResponse({ ok: true });
-    });
-  }
-
-  return jsonResponse({ error: 'unknown_action' }, 400);
+function withAdmin(e, fn) {
+  var secret = PROPS.getProperty('ADMIN_SECRET') || '';
+  var provided = e.parameter.admin_secret || '';
+  // Si ADMIN_SECRET non configuré, bloquer quand même
+  if (!secret || provided !== secret) return jsonResponse({ error: 'admin_unauthorized' });
+  try { return fn(); } catch(err) { return jsonResponse({ error: err.message }); }
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -77,73 +73,37 @@ function doPost(e) {
 // ──────────────────────────────────────────────────────────────
 
 function handleSteamCallback(e) {
-  var params = e.parameters; // all params as arrays
-
-  // 1. Extract steamid64 from openid.claimed_id
-  // Format: https://steamcommunity.com/openid/id/76561198XXXXXXXXX
   var claimedId = e.parameter['openid.claimed_id'] || '';
   var steamId = claimedId.replace(/.*\//, '');
-
-  if (!/^\d{17}$/.test(steamId)) {
-    return HtmlService.createHtmlOutput('<h2>Auth failed: invalid Steam ID</h2>');
-  }
-
-  // 2. Validate signature with Steam
-  var valid = verifySteamSignature(params);
-  if (!valid) {
-    return HtmlService.createHtmlOutput('<h2>Auth failed: signature invalide</h2>');
-  }
-
-  // 3. Generate token: HMAC:timestamp
+  if (!/^\d{17}$/.test(steamId)) return HtmlService.createHtmlOutput('<h2>Auth failed: invalid Steam ID</h2>');
+  if (!verifySteamSignature(e.parameters)) return HtmlService.createHtmlOutput('<h2>Auth failed: signature invalide</h2>');
   var token = generateToken(steamId);
-
-  // 4. Redirect to service park with token
   var serviceUrl = PROPS.getProperty('SERVICE_PARK_URL');
   var redirectUrl = serviceUrl + '?token=' + encodeURIComponent(token) + '&steam_id=' + encodeURIComponent(steamId);
-
-  return HtmlService.createHtmlOutput(
-    '<script>window.location.href = ' + JSON.stringify(redirectUrl) + ';</script>'
-  );
+  return HtmlService.createHtmlOutput('<script>window.location.href=' + JSON.stringify(redirectUrl) + ';</script>');
 }
 
 function verifySteamSignature(params) {
-  // Rebuild the POST body for check_authentication
-  // All openid.* params sent back as-is, with mode changed
   var postParams = [];
   for (var key in params) {
     if (key.indexOf('openid.') === 0) {
-      var val = params[key][0]; // arrays → first element
-      if (key === 'openid.mode') {
-        val = 'check_authentication';
-      }
+      var val = params[key][0];
+      if (key === 'openid.mode') val = 'check_authentication';
       postParams.push(encodeURIComponent(key) + '=' + encodeURIComponent(val));
     }
   }
-  var postBody = postParams.join('&');
-
   var response = UrlFetchApp.fetch('https://steamcommunity.com/openid/login', {
-    method: 'post',
-    contentType: 'application/x-www-form-urlencoded',
-    payload: postBody,
-    muteHttpExceptions: true
+    method: 'post', contentType: 'application/x-www-form-urlencoded',
+    payload: postParams.join('&'), muteHttpExceptions: true
   });
-
-  var text = response.getContentText();
-  return text.indexOf('is_valid:true') !== -1;
+  return response.getContentText().indexOf('is_valid:true') !== -1;
 }
-
-// ──────────────────────────────────────────────────────────────
-// TOKEN MANAGEMENT
-// ──────────────────────────────────────────────────────────────
 
 function generateToken(steamId) {
   var secret = PROPS.getProperty('STEAM_SECRET');
   var timestamp = Math.floor(Date.now() / 1000).toString();
-  var payload = steamId + ':' + timestamp;
-  var rawHmac = Utilities.computeHmacSha256Signature(payload, secret);
-  var hmacHex = rawHmac.map(function(b) {
-    return ('0' + (b & 0xff).toString(16)).slice(-2);
-  }).join('');
+  var rawHmac = Utilities.computeHmacSha256Signature(steamId + ':' + timestamp, secret);
+  var hmacHex = rawHmac.map(function(b) { return ('0' + (b & 0xff).toString(16)).slice(-2); }).join('');
   return hmacHex + ':' + timestamp;
 }
 
@@ -151,36 +111,17 @@ function validateToken(token, steamId) {
   if (!token || !steamId) return false;
   var parts = token.split(':');
   if (parts.length !== 2) return false;
-  var hmacHex = parts[0];
-  var timestamp = parts[1];
-
-  // Check expiry (4 hours)
-  var now = Math.floor(Date.now() / 1000);
-  if (now - parseInt(timestamp, 10) > 14400) return false;
-
-  // Recompute HMAC
+  if (Math.floor(Date.now() / 1000) - parseInt(parts[1], 10) > 14400) return false;
   var secret = PROPS.getProperty('STEAM_SECRET');
-  var payload = steamId + ':' + timestamp;
-  var rawHmac = Utilities.computeHmacSha256Signature(payload, secret);
-  var expectedHex = rawHmac.map(function(b) {
-    return ('0' + (b & 0xff).toString(16)).slice(-2);
-  }).join('');
-
-  return hmacHex === expectedHex;
+  var rawHmac = Utilities.computeHmacSha256Signature(steamId + ':' + parts[1], secret);
+  var expectedHex = rawHmac.map(function(b) { return ('0' + (b & 0xff).toString(16)).slice(-2); }).join('');
+  return parts[0] === expectedHex;
 }
 
-// Auth middleware helper
 function withAuth(e, fn) {
-  var token = e.parameter.token || '';
-  var steamId = e.parameter.steam_id || '';
-  if (!validateToken(token, steamId)) {
-    return jsonResponse({ error: 'unauthorized' }, 401);
-  }
-  try {
-    return fn(steamId);
-  } catch (err) {
-    return jsonResponse({ error: err.message }, 500);
-  }
+  if (!validateToken(e.parameter.token || '', e.parameter.steam_id || ''))
+    return jsonResponse({ error: 'unauthorized' });
+  try { return fn(e.parameter.steam_id); } catch(err) { return jsonResponse({ error: err.message }); }
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -188,32 +129,7 @@ function withAuth(e, fn) {
 // ──────────────────────────────────────────────────────────────
 
 function getSheet(name) {
-  var sheetId = PROPS.getProperty('SHEET_ID');
-  var ss = SpreadsheetApp.openById(sheetId);
-  return ss.getSheetByName(name);
-}
-
-// Returns object keyed by first column value
-function sheetToMap(sheet) {
-  var data = sheet.getDataRange().getValues();
-  var headers = data[0];
-  var map = {};
-  for (var i = 1; i < data.length; i++) {
-    var row = {};
-    for (var j = 0; j < headers.length; j++) {
-      row[headers[j]] = data[i][j];
-    }
-    map[data[i][0]] = { row: i + 1, data: row };
-  }
-  return { headers: headers, map: map, raw: data };
-}
-
-function findRow(sheet, colIndex, value) {
-  var data = sheet.getDataRange().getValues();
-  for (var i = 1; i < data.length; i++) {
-    if (String(data[i][colIndex]) === String(value)) return i + 1;
-  }
-  return -1;
+  return SpreadsheetApp.openById(PROPS.getProperty('SHEET_ID')).getSheetByName(name);
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -222,67 +138,40 @@ function findRow(sheet, colIndex, value) {
 
 function getDriverData(steamId, stageId) {
   var dsSheet = getSheet('driver_state');
-  var dcSheet = getSheet('damage_components');
-
-  // --- driver_state ---
   var dsData = dsSheet.getDataRange().getValues();
   var dsHeaders = dsData[0];
   var driverRow = null;
   for (var i = 1; i < dsData.length; i++) {
-    if (String(dsData[i][dsHeaders.indexOf('driver_guid')]) === String(steamId)) {
-      driverRow = dsData[i];
-      break;
-    }
+    if (String(dsData[i][dsHeaders.indexOf('driver_guid')]) === String(steamId)) { driverRow = dsData[i]; break; }
   }
+  if (!driverRow) throw new Error('driver_not_found:' + steamId);
+  function dsVal(col) { var idx = dsHeaders.indexOf(col); return idx >= 0 ? driverRow[idx] : null; }
 
-  if (!driverRow) {
-    throw new Error('driver_not_found:' + steamId);
-  }
-
-  function dsVal(col) {
-    var idx = dsHeaders.indexOf(col);
-    return idx >= 0 ? driverRow[idx] : null;
-  }
-
-  // --- damage_components for this driver + stage ---
+  var dcSheet = getSheet('damage_components');
   var dcData = dcSheet.getDataRange().getValues();
   var dcHeaders = dcData[0];
   var components = [];
-
   for (var j = 1; j < dcData.length; j++) {
     var row = dcData[j];
-    var rowGuid = String(row[dcHeaders.indexOf('driver_guid')]);
-    var rowStage = String(row[dcHeaders.indexOf('stage_id')]);
-    if (rowGuid === String(steamId) && rowStage === String(stageId)) {
-      function dcVal(col) {
-        var idx = dcHeaders.indexOf(col);
-        return idx >= 0 ? row[idx] : null;
-      }
+    if (String(row[dcHeaders.indexOf('driver_guid')]) === String(steamId) &&
+        String(row[dcHeaders.indexOf('stage_id')]) === String(stageId)) {
+      var dc = (function(r) { return function(col) { var idx = dcHeaders.indexOf(col); return idx >= 0 ? r[idx] : null; }; })(row);
       components.push({
-        id:          String(dcVal('component_id')),
-        score:       Number(dcVal('score')) || 0,
-        severity:    String(dcVal('severity') || 'none'),
-        ballast_kg:  Number(dcVal('ballast_kg')) || 0,
-        restrictor:  Number(dcVal('restrictor')) || 0,
-        repair_min:  Number(dcVal('repair_min')) || 0,
-        repaired:    dcVal('repaired') === true || dcVal('repaired') === 'TRUE'
+        id: String(dc('component_id')), score: Number(dc('score')) || 0,
+        severity: String(dc('severity') || 'none'), ballast_kg: Number(dc('ballast_kg')) || 0,
+        restrictor: Number(dc('restrictor')) || 0, repair_min: Number(dc('repair_min')) || 0,
+        repaired: dc('repaired') === true || dc('repaired') === 'TRUE'
       });
     }
   }
-
   return {
-    driver_guid:       String(steamId),
-    driver_name:       String(dsVal('driver_name') || ''),
-    car_model:         String(dsVal('car_model') || ''),
-    skin:              '',
-    stage_id:          String(stageId),
-    validated:         dsVal('validated') === true || dsVal('validated') === 'TRUE',
-    repair_budget_min: 45,
-    repair_used_min:   Number(dsVal('repair_used_min')) || 0,
-    ballast_kg:        Number(dsVal('ballast_kg')) || 0,
-    restrictor:        Number(dsVal('restrictor')) || 0,
-    penalty_seconds:   Number(dsVal('penalty_seconds')) || 0,
-    components:        components
+    driver_guid: String(steamId), driver_name: String(dsVal('driver_name') || ''),
+    car_model: String(dsVal('car_model') || ''), skin: String(dsVal('skin') || ''),
+    stage_id: String(stageId),
+    validated: dsVal('validated') === true || dsVal('validated') === 'TRUE',
+    repair_budget_min: 45, repair_used_min: Number(dsVal('repair_used_min')) || 0,
+    ballast_kg: Number(dsVal('ballast_kg')) || 0, restrictor: Number(dsVal('restrictor')) || 0,
+    penalty_seconds: Number(dsVal('penalty_seconds')) || 0, components: components
   };
 }
 
@@ -294,62 +183,29 @@ function saveRepairs(steamId, stageId, components) {
   var dcSheet = getSheet('damage_components');
   var dcData = dcSheet.getDataRange().getValues();
   var dcHeaders = dcData[0];
-
-  var guidIdx      = dcHeaders.indexOf('driver_guid');
-  var stageIdx     = dcHeaders.indexOf('stage_id');
-  var compIdIdx    = dcHeaders.indexOf('component_id');
-  var repairedIdx  = dcHeaders.indexOf('repaired');
-
-  // Index existing rows for this driver+stage: key = component_id → sheet row number
+  var guidIdx = dcHeaders.indexOf('driver_guid'), stageIdx = dcHeaders.indexOf('stage_id');
+  var compIdIdx = dcHeaders.indexOf('component_id'), repairedIdx = dcHeaders.indexOf('repaired');
   var existingRows = {};
   for (var i = 1; i < dcData.length; i++) {
-    if (String(dcData[i][guidIdx]) === String(steamId) &&
-        String(dcData[i][stageIdx]) === String(stageId)) {
+    if (String(dcData[i][guidIdx]) === String(steamId) && String(dcData[i][stageIdx]) === String(stageId))
       existingRows[String(dcData[i][compIdIdx])] = i + 1;
-    }
   }
-
-  var totalBallast = 0;
-  var totalRestrictor = 0;
-  var totalRepairMin = 0;
-
+  var totalBallast = 0, totalRestrictor = 0, totalRepairMin = 0;
   for (var k = 0; k < components.length; k++) {
-    var comp = components[k];
-    var compId = String(comp.id);
-    var repaired = comp.repaired === true;
-
-    // Effective penalties: if repaired, no ballast/restrictor/time contribution
-    if (!repaired) {
-      totalBallast    += Number(comp.ballast_kg) || 0;
-      totalRestrictor += Number(comp.restrictor) || 0;
-      totalRepairMin  += Number(comp.repair_min) || 0;
-    }
-
-    // Update repaired flag in damage_components
-    if (existingRows[compId]) {
-      dcSheet.getRange(existingRows[compId], repairedIdx + 1).setValue(repaired);
-    }
-    // If component row doesn't exist, skip (rows created by race result import)
+    var comp = components[k]; var repaired = comp.repaired === true;
+    if (!repaired) { totalBallast += Number(comp.ballast_kg) || 0; totalRestrictor += Number(comp.restrictor) || 0; totalRepairMin += Number(comp.repair_min) || 0; }
+    if (existingRows[String(comp.id)]) dcSheet.getRange(existingRows[String(comp.id)], repairedIdx + 1).setValue(repaired);
   }
-
-  // Update driver_state totals
   var dsSheet = getSheet('driver_state');
   var dsData = dsSheet.getDataRange().getValues();
   var dsHeaders = dsData[0];
-
-  var dsGuidIdx       = dsHeaders.indexOf('driver_guid');
-  var dsBallastIdx    = dsHeaders.indexOf('ballast_kg');
-  var dsRestrictIdx   = dsHeaders.indexOf('restrictor');
-  var dsRepairUsedIdx = dsHeaders.indexOf('repair_used_min');
-  var dsLastUpdIdx    = dsHeaders.indexOf('last_updated');
-
   for (var m = 1; m < dsData.length; m++) {
-    if (String(dsData[m][dsGuidIdx]) === String(steamId)) {
-      var rowNum = m + 1;
-      dsSheet.getRange(rowNum, dsBallastIdx + 1).setValue(totalBallast);
-      dsSheet.getRange(rowNum, dsRestrictIdx + 1).setValue(totalRestrictor);
-      dsSheet.getRange(rowNum, dsRepairUsedIdx + 1).setValue(totalRepairMin);
-      dsSheet.getRange(rowNum, dsLastUpdIdx + 1).setValue(new Date().toISOString());
+    if (String(dsData[m][dsHeaders.indexOf('driver_guid')]) === String(steamId)) {
+      var r = m + 1;
+      dsSheet.getRange(r, dsHeaders.indexOf('ballast_kg') + 1).setValue(totalBallast);
+      dsSheet.getRange(r, dsHeaders.indexOf('restrictor') + 1).setValue(totalRestrictor);
+      dsSheet.getRange(r, dsHeaders.indexOf('repair_used_min') + 1).setValue(totalRepairMin);
+      dsSheet.getRange(r, dsHeaders.indexOf('last_updated') + 1).setValue(new Date().toISOString());
       break;
     }
   }
@@ -363,18 +219,12 @@ function validateRepairs(steamId, stageId) {
   var dsSheet = getSheet('driver_state');
   var dsData = dsSheet.getDataRange().getValues();
   var dsHeaders = dsData[0];
-
-  var guidIdx      = dsHeaders.indexOf('driver_guid');
-  var validatedIdx = dsHeaders.indexOf('validated');
-  var lastUpdIdx   = dsHeaders.indexOf('last_updated');
-
+  var guidIdx = dsHeaders.indexOf('driver_guid'), validatedIdx = dsHeaders.indexOf('validated');
   for (var i = 1; i < dsData.length; i++) {
     if (String(dsData[i][guidIdx]) === String(steamId)) {
-      if (dsData[i][validatedIdx] === true || dsData[i][validatedIdx] === 'TRUE') {
-        throw new Error('already_validated');
-      }
+      if (dsData[i][validatedIdx] === true || dsData[i][validatedIdx] === 'TRUE') throw new Error('already_validated');
       dsSheet.getRange(i + 1, validatedIdx + 1).setValue(true);
-      dsSheet.getRange(i + 1, lastUpdIdx + 1).setValue(new Date().toISOString());
+      dsSheet.getRange(i + 1, dsHeaders.indexOf('last_updated') + 1).setValue(new Date().toISOString());
       return;
     }
   }
@@ -382,11 +232,158 @@ function validateRepairs(steamId, stageId) {
 }
 
 // ──────────────────────────────────────────────────────────────
-// RESPONSE HELPERS
+// ADMIN — OVERVIEW
+// ──────────────────────────────────────────────────────────────
+
+function getAdminOverview() {
+  var stageId = PROPS.getProperty('CURRENT_STAGE_ID');
+  var dsSheet = getSheet('driver_state');
+  var dsData = dsSheet.getDataRange().getValues();
+  var dsHeaders = dsData[0];
+
+  var dcSheet = getSheet('damage_components');
+  var dcData = dcSheet.getDataRange().getValues();
+  var dcHeaders = dcData[0];
+
+  // Index damage_components par driver_guid+stage_id
+  var dcIndex = {};
+  for (var j = 1; j < dcData.length; j++) {
+    var row = dcData[j];
+    var guid = String(row[dcHeaders.indexOf('driver_guid')]);
+    var sid  = String(row[dcHeaders.indexOf('stage_id')]);
+    if (sid !== stageId) continue;
+    if (!dcIndex[guid]) dcIndex[guid] = [];
+    dcIndex[guid].push({
+      component_id: String(row[dcHeaders.indexOf('component_id')]),
+      severity:     String(row[dcHeaders.indexOf('severity')] || 'none'),
+      ballast_kg:   Number(row[dcHeaders.indexOf('ballast_kg')]) || 0,
+      restrictor:   Number(row[dcHeaders.indexOf('restrictor')]) || 0,
+      repair_min:   Number(row[dcHeaders.indexOf('repair_min')]) || 0,
+      repaired:     row[dcHeaders.indexOf('repaired')] === true || row[dcHeaders.indexOf('repaired')] === 'TRUE'
+    });
+  }
+
+  var drivers = [];
+  for (var i = 1; i < dsData.length; i++) {
+    var drow = dsData[i];
+    function dv(col) { var idx = dsHeaders.indexOf(col); return idx >= 0 ? drow[idx] : null; }
+    var guid = String(dv('driver_guid'));
+    var comps = dcIndex[guid] || [];
+    var totalDamaged  = comps.filter(function(c) { return c.severity !== 'none' && c.severity !== 'intact'; }).length;
+    var totalRepaired = comps.filter(function(c) { return c.repaired; }).length;
+    drivers.push({
+      driver_guid:     guid,
+      driver_name:     String(dv('driver_name') || ''),
+      car_model:       String(dv('car_model') || ''),
+      validated:       dv('validated') === true || dv('validated') === 'TRUE',
+      ballast_kg:      Number(dv('ballast_kg')) || 0,
+      restrictor:      Number(dv('restrictor')) || 0,
+      repair_used_min: Number(dv('repair_used_min')) || 0,
+      last_updated:    String(dv('last_updated') || ''),
+      damaged_count:   totalDamaged,
+      repaired_count:  totalRepaired,
+      components:      comps
+    });
+  }
+
+  return { stage_id: stageId, drivers: drivers };
+}
+
+// ──────────────────────────────────────────────────────────────
+// ADMIN — IMPORT ENTRY LIST (format ACSM JSON)
+// ──────────────────────────────────────────────────────────────
+
+function importEntryList(cars, stageId) {
+  var dsSheet = getSheet('driver_state');
+  var dsData = dsSheet.getDataRange().getValues();
+  var dsHeaders = dsData[0];
+
+  // Index des GUIDs existants → numéro de ligne
+  var existingGuids = {};
+  for (var i = 1; i < dsData.length; i++) {
+    existingGuids[String(dsData[i][dsHeaders.indexOf('driver_guid')])] = i + 1;
+  }
+
+  var inserted = 0, updated = 0;
+  for (var k = 0; k < cars.length; k++) {
+    var car    = cars[k];
+    var driver = car.Driver || car.driver || {};
+    var guid   = String(driver.Guid || driver.guid || '');
+    var name   = String(driver.Name || driver.name || '');
+    var model  = String(car.Model  || car.model  || '');
+    var skin   = String(car.Skin   || car.skin   || '');
+    if (!guid || guid === 'undefined') continue;
+
+    if (existingGuids[guid]) {
+      // Mise à jour nom + voiture uniquement (ne pas écraser les données de course)
+      var row = existingGuids[guid];
+      dsSheet.getRange(row, dsHeaders.indexOf('driver_name') + 1).setValue(name);
+      dsSheet.getRange(row, dsHeaders.indexOf('car_model') + 1).setValue(model);
+      dsSheet.getRange(row, dsHeaders.indexOf('skin') + 1).setValue(skin);
+      updated++;
+    } else {
+      // Nouvelle ligne
+      var newRow = [guid, name, model, stageId, false, 0, 0, 0, 0, new Date().toISOString(), skin];
+      // Construire la ligne dans l'ordre des headers
+      var rowData = dsHeaders.map(function(h) {
+        var map = {
+          driver_guid: guid, driver_name: name, car_model: model,
+          stage_id: stageId, validated: false, repair_used_min: 0,
+          ballast_kg: 0, restrictor: 0, penalty_seconds: 0,
+          last_updated: new Date().toISOString(), skin: skin
+        };
+        return map[h] !== undefined ? map[h] : '';
+      });
+      dsSheet.appendRow(rowData);
+      inserted++;
+    }
+  }
+
+  return { ok: true, inserted: inserted, updated: updated, total: cars.length };
+}
+
+// ──────────────────────────────────────────────────────────────
+// ADMIN — RESET STAGE (remet validated=false pour tous)
+// ──────────────────────────────────────────────────────────────
+
+function resetStage(stageId) {
+  var dsSheet = getSheet('driver_state');
+  var dsData = dsSheet.getDataRange().getValues();
+  var dsHeaders = dsData[0];
+  var validatedIdx = dsHeaders.indexOf('validated');
+  var stageIdx     = dsHeaders.indexOf('stage_id');
+  var repairIdx    = dsHeaders.indexOf('repair_used_min');
+  var ballastIdx   = dsHeaders.indexOf('ballast_kg');
+  var restIdx      = dsHeaders.indexOf('restrictor');
+
+  for (var i = 1; i < dsData.length; i++) {
+    var row = i + 1;
+    dsSheet.getRange(row, stageIdx + 1).setValue(stageId);
+    dsSheet.getRange(row, validatedIdx + 1).setValue(false);
+    dsSheet.getRange(row, repairIdx + 1).setValue(0);
+    dsSheet.getRange(row, ballastIdx + 1).setValue(0);
+    dsSheet.getRange(row, restIdx + 1).setValue(0);
+  }
+
+  // Reset damage_components repaired=false pour ce stage
+  var dcSheet = getSheet('damage_components');
+  var dcData = dcSheet.getDataRange().getValues();
+  var dcHeaders = dcData[0];
+  var dcStageIdx    = dcHeaders.indexOf('stage_id');
+  var dcRepairedIdx = dcHeaders.indexOf('repaired');
+  for (var j = 1; j < dcData.length; j++) {
+    if (String(dcData[j][dcStageIdx]) === String(stageId)) {
+      dcSheet.getRange(j + 1, dcRepairedIdx + 1).setValue(false);
+    }
+  }
+
+  return { ok: true, stage_id: stageId };
+}
+
+// ──────────────────────────────────────────────────────────────
+// RESPONSE HELPER
 // ──────────────────────────────────────────────────────────────
 
 function jsonResponse(obj) {
-  var output = ContentService.createTextOutput(JSON.stringify(obj));
-  output.setMimeType(ContentService.MimeType.JSON);
-  return output;
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }

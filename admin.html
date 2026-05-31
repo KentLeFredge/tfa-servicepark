@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TFA Admin — Service Park</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;600&display=swap');
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:      #1e2428; --surface: #2a3238; --surface2: #323d44;
+  --border:  #3a4850; --text: #e8eaec; --text-dim: #7a8894;
+  --green:   #5cb85c; --yellow: #f0ad4e; --red: #d9534f; --cyan: #5bc0de;
+  --white:   #ffffff;
+}
+body { font-family:'Barlow Condensed',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+/* ── HEADER ── */
+header { background:var(--surface); border-bottom:2px solid var(--border); padding:0 24px; height:52px; display:flex; align-items:center; justify-content:space-between; }
+.header-title { font-size:1.1rem; font-weight:800; color:var(--cyan); letter-spacing:0.1em; }
+.header-stage { font-size:0.85rem; color:var(--text-dim); }
+.header-stage strong { color:var(--yellow); }
+
+/* ── LOGIN ── */
+#login-panel { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:80vh; gap:16px; }
+.login-box { background:var(--surface); border:1px solid var(--border); padding:32px 40px; display:flex; flex-direction:column; gap:12px; min-width:320px; }
+.login-box h2 { font-size:1rem; font-weight:700; color:var(--text-dim); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:4px; }
+.field-group { display:flex; flex-direction:column; gap:4px; }
+.field-group label { font-size:11px; color:var(--text-dim); letter-spacing:0.06em; text-transform:uppercase; }
+input[type=text], input[type=password], input[type=url] {
+  background:var(--bg); border:1px solid var(--border); color:var(--text);
+  font-family:'Barlow Condensed',sans-serif; font-size:14px;
+  padding:8px 10px; width:100%; outline:none;
+}
+input:focus { border-color:var(--cyan); }
+
+/* ── BUTTONS ── */
+.btn { font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; padding:8px 20px; border:2px solid var(--border); color:var(--text); background:var(--surface2); cursor:pointer; transition:all 0.12s; }
+.btn:hover { border-color:var(--text-dim); }
+.btn.primary { border-color:var(--cyan); color:var(--cyan); }
+.btn.primary:hover { background:var(--cyan); color:var(--bg); }
+.btn.danger { border-color:var(--red); color:var(--red); }
+.btn.danger:hover { background:var(--red); color:var(--white); }
+.btn.success { border-color:var(--green); color:var(--green); }
+.btn.success:hover { background:var(--green); color:var(--bg); }
+.btn:disabled { opacity:0.35; cursor:not-allowed; }
+
+/* ── MAIN ── */
+#main-panel { display:none; padding:20px 24px; }
+.toolbar { display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+.toolbar-sep { color:var(--border); font-size:20px; }
+.stage-badge { background:var(--surface); border:1px solid var(--yellow); color:var(--yellow); font-size:13px; font-weight:700; padding:6px 14px; letter-spacing:0.06em; }
+
+/* ── STATS BAR ── */
+.stats-row { display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+.stat-card { background:var(--surface); border:1px solid var(--border); padding:12px 18px; flex:1; min-width:120px; }
+.stat-val { font-size:2rem; font-weight:800; line-height:1; }
+.stat-val.green  { color:var(--green); }
+.stat-val.yellow { color:var(--yellow); }
+.stat-val.red    { color:var(--red); }
+.stat-val.cyan   { color:var(--cyan); }
+.stat-label { font-size:10px; color:var(--text-dim); letter-spacing:0.08em; text-transform:uppercase; margin-top:4px; }
+
+/* ── TABLE ── */
+.table-wrap { background:var(--surface); border:1px solid var(--border); overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th { font-size:10px; font-weight:700; color:var(--text-dim); letter-spacing:0.08em; text-transform:uppercase; padding:9px 12px; text-align:left; background:var(--surface2); border-bottom:1px solid var(--border); white-space:nowrap; }
+td { padding:9px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:rgba(255,255,255,0.02); }
+.status-badge { display:inline-block; padding:2px 8px; font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; }
+.status-ok      { background:rgba(92,184,92,0.15);  color:var(--green); border:1px solid var(--green); }
+.status-pending { background:rgba(240,173,78,0.15); color:var(--yellow); border:1px solid var(--yellow); }
+.status-none    { background:rgba(122,136,148,0.1); color:var(--text-dim); border:1px solid var(--border); }
+.bal-val  { color:var(--yellow); font-weight:700; }
+.res-val  { color:var(--red); font-weight:700; }
+.repair-bar { height:6px; background:var(--border); border-radius:3px; min-width:60px; overflow:hidden; }
+.repair-fill { height:100%; background:var(--cyan); border-radius:3px; }
+
+/* ── DETAIL ROW ── */
+.detail-row td { background:var(--bg); padding:0; }
+.detail-inner { padding:12px 16px; display:flex; flex-wrap:wrap; gap:8px; }
+.comp-chip { padding:4px 10px; font-size:11px; border:1px solid var(--border); background:var(--surface); }
+.comp-chip.repaired { border-color:var(--green); color:var(--green); }
+.comp-chip.damaged  { border-color:var(--yellow); color:var(--yellow); }
+.comp-chip.severe   { border-color:var(--red); color:var(--red); }
+
+/* ── IMPORT MODAL ── */
+#import-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:100; align-items:center; justify-content:center; }
+#import-modal.open { display:flex; }
+.modal-box { background:var(--surface); border:1px solid var(--border); padding:28px; max-width:560px; width:90%; }
+.modal-box h3 { font-size:1rem; font-weight:700; color:var(--cyan); margin-bottom:16px; letter-spacing:0.06em; text-transform:uppercase; }
+textarea { width:100%; height:180px; background:var(--bg); border:1px solid var(--border); color:var(--text); font-family:monospace; font-size:12px; padding:10px; resize:vertical; outline:none; }
+textarea:focus { border-color:var(--cyan); }
+.modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:14px; }
+.import-result { margin-top:12px; font-size:13px; padding:8px 12px; border-left:3px solid var(--cyan); background:rgba(91,192,222,0.08); display:none; }
+
+/* ── TOAST ── */
+#toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--surface2); border:1px solid var(--cyan); color:var(--cyan); padding:8px 20px; font-size:13px; font-weight:700; letter-spacing:0.06em; opacity:0; pointer-events:none; transition:opacity 0.3s; z-index:200; }
+#toast.show { opacity:1; }
+#toast.err  { border-color:var(--red); color:var(--red); }
+
+.spinner { display:inline-block; width:16px; height:16px; border:2px solid var(--border); border-top-color:var(--cyan); border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; margin-right:6px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">🔧 TFA ADMIN — SERVICE PARK</div>
+  <div class="header-stage">Étape active : <strong id="hdr-stage">—</strong></div>
+</header>
+
+<!-- ══ LOGIN ══ -->
+<div id="login-panel">
+  <div class="login-box">
+    <h2>Accès administrateur</h2>
+    <div class="field-group">
+      <label>URL Apps Script</label>
+      <input type="url" id="inp-url" placeholder="https://script.google.com/macros/s/.../exec" />
+    </div>
+    <div class="field-group">
+      <label>Admin Secret</label>
+      <input type="password" id="inp-secret" placeholder="ADMIN_SECRET configuré dans Script Properties" />
+    </div>
+    <button class="btn primary" id="btn-login">Connexion</button>
+    <div id="login-err" style="color:var(--red);font-size:12px;display:none;"></div>
+  </div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<div id="main-panel">
+  <div class="toolbar">
+    <div class="stage-badge" id="stage-badge">—</div>
+    <button class="btn primary" id="btn-refresh">↻ Rafraîchir</button>
+    <span class="toolbar-sep">|</span>
+    <button class="btn success" id="btn-import">⬆ Importer entry list</button>
+    <span class="toolbar-sep">|</span>
+    <label style="font-size:12px;color:var(--text-dim);">Changer étape :</label>
+    <input type="text" id="inp-stage" style="width:120px;padding:6px 8px;font-size:13px;" placeholder="etape_02" />
+    <button class="btn" id="btn-set-stage">Appliquer</button>
+    <span class="toolbar-sep">|</span>
+    <button class="btn danger" id="btn-reset">⚠ Reset étape</button>
+  </div>
+
+  <div class="stats-row" id="stats-row">
+    <div class="stat-card"><div class="stat-val cyan" id="stat-total">—</div><div class="stat-label">Pilotes inscrits</div></div>
+    <div class="stat-card"><div class="stat-val green" id="stat-validated">—</div><div class="stat-label">Réparations validées</div></div>
+    <div class="stat-card"><div class="stat-val yellow" id="stat-pending">—</div><div class="stat-label">En attente</div></div>
+    <div class="stat-card"><div class="stat-val red" id="stat-none">—</div><div class="stat-label">Pas encore ouvert</div></div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Pilote</th>
+          <th>Voiture</th>
+          <th>Statut</th>
+          <th>Ballast</th>
+          <th>Restrictor</th>
+          <th>Réparations</th>
+          <th>Dernière activité</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="drivers-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ IMPORT MODAL ══ -->
+<div id="import-modal">
+  <div class="modal-box">
+    <h3>Importer entry list ACSM</h3>
+    <p style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">Colle le contenu du fichier JSON ACSM (format <code style="color:var(--cyan)">{"Cars":[...]}</code>). Les pilotes existants seront mis à jour, les nouveaux créés.</p>
+    <textarea id="import-textarea" placeholder='{"Cars": [{"Driver": {"Guid": "...", "Name": "..."}, "Model": "...", "Skin": "..."}]}'></textarea>
+    <div class="import-result" id="import-result"></div>
+    <div class="modal-actions">
+      <button class="btn" id="btn-import-cancel">Annuler</button>
+      <button class="btn primary" id="btn-import-confirm">Importer</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const GAS = { url: '', secret: '' };
+let OVERVIEW = null;
+
+// ── LOGIN ──
+document.getElementById('btn-login').addEventListener('click', async () => {
+  const url    = document.getElementById('inp-url').value.trim();
+  const secret = document.getElementById('inp-secret').value.trim();
+  if (!url || !secret) { showLoginErr('Remplis les deux champs.'); return; }
+  GAS.url = url; GAS.secret = secret;
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Connexion…';
+  try {
+    const data = await apiGet('admin_overview');
+    if (data.error) throw new Error(data.error);
+    localStorage.setItem('tfa_admin_url',    url);
+    localStorage.setItem('tfa_admin_secret', secret);
+    document.getElementById('login-panel').style.display = 'none';
+    document.getElementById('main-panel').style.display  = 'block';
+    renderOverview(data);
+  } catch(e) {
+    showLoginErr('Erreur : ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Connexion';
+  }
+});
+
+function showLoginErr(msg) {
+  const el = document.getElementById('login-err');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+// Restaurer session
+window.addEventListener('DOMContentLoaded', () => {
+  const url    = localStorage.getItem('tfa_admin_url');
+  const secret = localStorage.getItem('tfa_admin_secret');
+  if (url && secret) {
+    document.getElementById('inp-url').value    = url;
+    document.getElementById('inp-secret').value = secret;
+  }
+});
+
+// ── API ──
+async function apiGet(action) {
+  const u = new URL(GAS.url);
+  u.searchParams.set('action', action);
+  u.searchParams.set('admin_secret', GAS.secret);
+  const r = await fetch(u.toString());
+  return r.json();
+}
+
+async function apiPost(action, body) {
+  const u = new URL(GAS.url);
+  u.searchParams.set('action', action);
+  u.searchParams.set('admin_secret', GAS.secret);
+  const r = await fetch(u.toString(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  return r.json();
+}
+
+// ── RENDER ──
+function renderOverview(data) {
+  OVERVIEW = data;
+  const drivers = data.drivers || [];
+  const stageId = data.stage_id || '—';
+
+  document.getElementById('hdr-stage').textContent    = stageId;
+  document.getElementById('stage-badge').textContent  = stageId;
+  document.getElementById('inp-stage').placeholder    = stageId;
+
+  const validated = drivers.filter(d => d.validated).length;
+  const pending   = drivers.filter(d => !d.validated && d.last_updated && d.repair_used_min > 0).length;
+  const none      = drivers.filter(d => !d.validated && (!d.last_updated || d.repair_used_min === 0)).length;
+
+  document.getElementById('stat-total').textContent     = drivers.length;
+  document.getElementById('stat-validated').textContent = validated;
+  document.getElementById('stat-pending').textContent   = pending;
+  document.getElementById('stat-none').textContent      = none;
+
+  const tbody = document.getElementById('drivers-tbody');
+  tbody.innerHTML = '';
+
+  // Tri : pas encore ouvert → en cours → validés
+  const sorted = [...drivers].sort((a, b) => {
+    const rank = d => d.validated ? 2 : (d.repair_used_min > 0 ? 1 : 0);
+    return rank(a) - rank(b);
+  });
+
+  sorted.forEach((d, i) => {
+    const status    = d.validated ? 'ok' : (d.repair_used_min > 0 ? 'pending' : 'none');
+    const statusLbl = d.validated ? '✓ Validé' : (d.repair_used_min > 0 ? '🔧 En cours' : '— Pas ouvert');
+    const balHtml   = d.ballast_kg > 0 ? `<span class="bal-val">+${d.ballast_kg} kg</span>` : '<span style="color:var(--text-dim)">—</span>';
+    const resHtml   = d.restrictor > 0 ? `<span class="res-val">${d.restrictor}</span>` : '<span style="color:var(--text-dim)">—</span>';
+    const repPct    = d.damaged_count > 0 ? Math.round(d.repaired_count / d.damaged_count * 100) : 0;
+    const repLabel  = d.damaged_count > 0 ? `${d.repaired_count}/${d.damaged_count}` : '—';
+    const lastUpd   = d.last_updated ? new Date(d.last_updated).toLocaleString('fr-FR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+
+    const tr = document.createElement('tr');
+    tr.dataset.guid = d.driver_guid;
+    tr.innerHTML = `
+      <td style="color:var(--text-dim);font-size:11px;">${i + 1}</td>
+      <td><strong>${d.driver_name || '—'}</strong><br><span style="font-size:10px;color:var(--text-dim);font-family:monospace;">${d.driver_guid}</span></td>
+      <td style="font-size:11px;color:var(--text-dim);">${d.car_model || '—'}</td>
+      <td><span class="status-badge status-${status}">${statusLbl}</span></td>
+      <td>${balHtml}</td>
+      <td>${resHtml}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="repair-bar"><div class="repair-fill" style="width:${repPct}%"></div></div>
+          <span style="font-size:11px;color:var(--text-dim)">${repLabel}</span>
+        </div>
+      </td>
+      <td style="font-size:11px;color:var(--text-dim);">${lastUpd}</td>
+      <td><button class="btn" style="padding:4px 10px;font-size:11px;" onclick="toggleDetail('${d.driver_guid}')">▼</button></td>
+    `;
+    tbody.appendChild(tr);
+
+    // Ligne détail (masquée)
+    const detailTr = document.createElement('tr');
+    detailTr.className = 'detail-row';
+    detailTr.id = 'detail-' + d.driver_guid;
+    detailTr.style.display = 'none';
+    const comps = d.components || [];
+    const chipsHtml = comps.length === 0
+      ? '<span style="color:var(--text-dim);font-size:12px;font-style:italic;">Aucun composant enregistré pour cette étape</span>'
+      : comps.map(c => {
+          const cls = c.repaired ? 'repaired' : (c.severity === 'critique' || c.severity === 'severe' ? 'severe' : c.severity !== 'intact' ? 'damaged' : '');
+          const icon = c.repaired ? '✓' : (c.severity !== 'intact' && c.severity !== 'none' ? '⚠' : '○');
+          const pen  = [];
+          if (!c.repaired && c.ballast_kg > 0) pen.push(`+${c.ballast_kg}kg`);
+          if (!c.repaired && c.restrictor > 0)  pen.push(`R:${c.restrictor}`);
+          return `<span class="comp-chip ${cls}">${icon} ${c.component_id}${pen.length ? ' · ' + pen.join(' ') : ''}</span>`;
+        }).join('');
+    detailTr.innerHTML = `<td colspan="9"><div class="detail-inner">${chipsHtml}</div></td>`;
+    tbody.appendChild(detailTr);
+  });
+}
+
+function toggleDetail(guid) {
+  const el = document.getElementById('detail-' + guid);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'table-row' : 'none';
+}
+
+// ── RAFRAÎCHIR ──
+document.getElementById('btn-refresh').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-refresh');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Chargement…';
+  try {
+    const data = await apiGet('admin_overview');
+    if (data.error) throw new Error(data.error);
+    renderOverview(data);
+    showToast('Données rafraîchies');
+  } catch(e) { showToast('Erreur : ' + e.message, true); }
+  finally { btn.disabled = false; btn.textContent = '↻ Rafraîchir'; }
+});
+
+// ── CHANGER ÉTAPE ──
+document.getElementById('btn-set-stage').addEventListener('click', async () => {
+  const stageId = document.getElementById('inp-stage').value.trim();
+  if (!stageId) return;
+  if (!confirm(`Changer l'étape active en "${stageId}" ?\nCela ne modifie pas les données des pilotes.`)) return;
+  try {
+    const data = await apiPost('set_stage', { stage_id: stageId });
+    if (data.error) throw new Error(data.error);
+    showToast(`Étape changée : ${stageId}`);
+    const r = await apiGet('admin_overview');
+    renderOverview(r);
+  } catch(e) { showToast('Erreur : ' + e.message, true); }
+});
+
+// ── RESET ÉTAPE ──
+document.getElementById('btn-reset').addEventListener('click', async () => {
+  const stageId = OVERVIEW ? OVERVIEW.stage_id : '';
+  if (!confirm(`⚠ RESET de l'étape "${stageId}" ?\n\nCela remet à zéro :\n- validated → false pour tous\n- ballast/restrictor/repair_used → 0\n- repaired → false pour tous les composants\n\nIRRÉVERSIBLE. Continuer ?`)) return;
+  try {
+    const data = await apiPost('reset_stage', { stage_id: stageId });
+    if (data.error) throw new Error(data.error);
+    showToast(`Étape ${stageId} remise à zéro`);
+    const r = await apiGet('admin_overview');
+    renderOverview(r);
+  } catch(e) { showToast('Erreur : ' + e.message, true); }
+});
+
+// ── IMPORT ──
+document.getElementById('btn-import').addEventListener('click', () => {
+  document.getElementById('import-textarea').value = '';
+  document.getElementById('import-result').style.display = 'none';
+  document.getElementById('import-modal').classList.add('open');
+});
+document.getElementById('btn-import-cancel').addEventListener('click', () => {
+  document.getElementById('import-modal').classList.remove('open');
+});
+
+document.getElementById('btn-import-confirm').addEventListener('click', async () => {
+  const raw = document.getElementById('import-textarea').value.trim();
+  if (!raw) return;
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch(e) { showToast('JSON invalide', true); return; }
+  const cars = parsed.Cars || parsed.cars || parsed.entries || [];
+  if (!cars.length) { showToast('Aucun pilote trouvé dans le JSON', true); return; }
+
+  const btn = document.getElementById('btn-import-confirm');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Import…';
+  try {
+    const data = await apiPost('import_entry_list', {
+      cars: cars,
+      stage_id: OVERVIEW ? OVERVIEW.stage_id : 'etape_01'
+    });
+    if (data.error) throw new Error(data.error);
+    const resEl = document.getElementById('import-result');
+    resEl.innerHTML = `✓ Import terminé — <strong>${data.inserted}</strong> créés, <strong>${data.updated}</strong> mis à jour (total ${data.total})`;
+    resEl.style.display = 'block';
+    showToast(`Import OK : ${data.inserted} créés, ${data.updated} mis à jour`);
+    const r = await apiGet('admin_overview');
+    renderOverview(r);
+  } catch(e) { showToast('Erreur import : ' + e.message, true); }
+  finally { btn.disabled = false; btn.textContent = 'Importer'; }
+});
+
+// ── TOAST ──
+let _tt;
+function showToast(msg, err) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className   = 'show' + (err ? ' err' : '');
+  clearTimeout(_tt); _tt = setTimeout(() => { el.className = ''; }, 3000);
+}
+</script>
+</body>
+</html>

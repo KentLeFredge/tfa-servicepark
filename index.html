@@ -875,7 +875,6 @@ function gasPost(action, body) {
   url.searchParams.set('stage_id', STAGE_ID);
   return fetch(url.toString(), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   }).then(r => r.json());
 }
@@ -1110,14 +1109,9 @@ function initUI() {
           sessionStorage.setItem('tfa_is_admin', '1');
           adminShowTab();
           adminRender(data);
-        } else {
-          // DEBUG temporaire — affiche la réponse en toast
-          showToast('Admin check: ' + data.error);
         }
       })
-      .catch(function(err) {
-        showToast('Admin fetch err: ' + err.message);
-      });
+      .catch(function() {});
   }
 
   renderAll();

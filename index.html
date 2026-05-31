@@ -661,7 +661,8 @@ const CONFIG = {
     <div class="admin-toolbar">
       <div class="admin-stage-badge" id="admin-stage-badge">—</div>
       <button class="btn primary" id="admin-btn-refresh" onclick="adminRefresh()">↻ Rafraîchir</button>
-      <button class="btn" style="border-color:var(--green);color:var(--green);" id="admin-btn-import" onclick="adminOpenImport()">⬆ Importer entry list</button>
+      <button class="btn" style="border-color:var(--green);color:var(--green);" id="admin-btn-import" onclick="adminOpenImport('entrylist')">⬆ Entry list</button>
+      <button class="btn" style="border-color:var(--yellow);color:var(--yellow);" id="admin-btn-champ" onclick="adminOpenImport('championship')">🏆 Championnat</button>
       <button class="btn" style="border-color:var(--cyan);color:var(--cyan);" id="admin-btn-export" onclick="adminExport()">⬇ Exporter entry list</button>
       <input type="text" id="admin-inp-stage" placeholder="etape_02" style="font-family:'Barlow Condensed',sans-serif;font-size:13px;padding:5px 8px;background:var(--bg-panel);border:1px solid var(--border-l);color:var(--text);width:110px;" />
       <button class="btn" onclick="adminSetStage()">Changer étape</button>
@@ -694,8 +695,8 @@ const CONFIG = {
 <!-- ══ IMPORT MODAL ══ -->
 <div class="admin-modal" id="admin-import-modal">
   <div class="admin-modal-box">
-    <h3>Importer Entry List ACSM</h3>
-    <p>Dépose le fichier JSON ACSM ou clique pour le sélectionner.<br>Pilotes existants mis à jour, nouveaux créés.</p>
+    <h3 id="admin-import-modal-title">Importer</h3>
+    <p id="admin-import-modal-desc">Dépose le fichier JSON ACSM ou clique pour le sélectionner.</p>
     <div class="admin-dropzone" id="admin-dropzone">
       <input type="file" id="admin-file-input" accept=".json,application/json" />
       <div class="admin-dropzone-icon">📂</div>
@@ -1070,9 +1071,14 @@ function goTab(tab) {
 function initUI() {
   document.getElementById('driver-name').textContent = STATE.driver_name;
 
-  const liveryBase = `https://acsm.revivalseries.fr/content/cars/${STATE.car_model}/skins/${STATE.skin}/preview.jpg`;
-  document.getElementById('livery-preview').src = liveryBase;
-  document.getElementById('info-livery').src     = liveryBase;
+  // Preview livrée : essaie preview.jpg puis livery.png (formats ACSM)
+  const liveryBase = STATE.skin
+    ? `https://acsm.revivalseries.fr/content/cars/${STATE.car_model}/skins/${STATE.skin}/preview.jpg`
+    : '';
+  if (liveryBase) {
+    document.getElementById('livery-preview').src = liveryBase;
+    document.getElementById('info-livery').src     = liveryBase;
+  }
 
   document.getElementById('stage-name').textContent = STATE.stage_id;
   document.getElementById('best-time').textContent  = urlParams.get('time') || '—';
@@ -1177,41 +1183,59 @@ function renderInfo() {
 /* ════════════════════════════════════
    ONGLET CLASSEMENT — identique v5
    ════════════════════════════════════ */
+function msToTime(ms) {
+  if (!ms) return '—';
+  const totalS = Math.floor(ms / 1000);
+  const min    = Math.floor(totalS / 60);
+  const sec    = totalS % 60;
+  const milli  = Math.floor((ms % 1000) / 10);
+  return `${min}:${String(sec).padStart(2,'0')}.${String(milli).padStart(2,'0')}`;
+}
+
 function renderStandings() {
   if (!STATE) return;
+
+  // ── Classement étape (depuis STATE.stage_results) ──
   const stageBody = document.getElementById('standings-stage-body');
   stageBody.innerHTML = '';
   const results = STATE.stage_results || [];
   if (!results.length) {
     stageBody.innerHTML = `<tr><td colspan="4" class="standings-empty">${LANG==='en'?'No stage results available.':'Aucun résultat d\'étape disponible.'}</td></tr>`;
   } else {
+    const best = results[0] ? results[0].best_lap_ms : 0;
     results.forEach((r, i) => {
-      const pos = i + 1;
-      const pc  = pos===1?'p1':pos===2?'p2':pos===3?'p3':'';
-      stageBody.innerHTML += `<tr class="${r.me?'me':''}">
+      const pos   = r.position || (i + 1);
+      const pc    = pos===1?'p1':pos===2?'p2':pos===3?'p3':'';
+      const isMe  = String(r.driver_guid) === String(AUTH.steamId);
+      const gap   = (i === 0 || !r.best_lap_ms || !best) ? '—' : '+' + msToTime(r.best_lap_ms - best);
+      stageBody.innerHTML += `<tr class="${isMe?'me':''}">
         <td><span class="pos-badge ${pc}">${pos}</span></td>
-        <td>${r.name}</td>
-        <td>${r.time}</td>
-        <td style="color:var(--text-dim)">${r.gap}</td>
+        <td>${r.driver_name || '—'}</td>
+        <td>${msToTime(r.best_lap_ms)}</td>
+        <td style="color:var(--text-dim)">${gap}</td>
       </tr>`;
     });
   }
+
+  // ── Classement général (ballast/restrictor depuis driver_state via admin_overview) ──
   const genBody = document.getElementById('standings-general-body');
   genBody.innerHTML = '';
-  const gen = STATE.general_standings || [];
+  // Utilise ADMIN_DATA si disponible (admin), sinon stage_results pour pilotes
+  const gen = (ADMIN_DATA && ADMIN_DATA.drivers) ? ADMIN_DATA.drivers : [];
   if (!gen.length) {
     genBody.innerHTML = `<tr><td colspan="5" class="standings-empty">${LANG==='en'?'No general standings available.':'Aucun classement général disponible.'}</td></tr>`;
   } else {
-    const sorted = [...gen].sort((a,b) => (a.ballast+a.restrictor) - (b.ballast+b.restrictor));
+    const sorted = [...gen].sort((a,b) => (a.ballast_kg||0) - (b.ballast_kg||0));
     sorted.forEach((r, i) => {
-      const pos = i + 1;
-      const pc  = pos===1?'p1':pos===2?'p2':pos===3?'p3':'';
-      genBody.innerHTML += `<tr class="${r.me?'me':''}">
+      const pos  = i + 1;
+      const pc   = pos===1?'p1':pos===2?'p2':pos===3?'p3':'';
+      const isMe = String(r.driver_guid) === String(AUTH.steamId);
+      genBody.innerHTML += `<tr class="${isMe?'me':''}">
         <td><span class="pos-badge ${pc}">${pos}</span></td>
-        <td>${r.name}</td>
-        <td class="bal-cell">${r.ballast > 0 ? '+'+r.ballast+' kg' : '—'}</td>
+        <td>${r.driver_name || '—'}</td>
+        <td class="bal-cell">${r.ballast_kg > 0 ? '+'+r.ballast_kg+' kg' : '—'}</td>
         <td class="res-cell">${r.restrictor > 0 ? r.restrictor : '—'}</td>
-        <td>${r.repairs || '—'}</td>
+        <td>${r.repaired_count||0}/${r.damaged_count||0}</td>
       </tr>`;
     });
   }
@@ -1271,7 +1295,7 @@ function renderNextStage() {
 }
 
 /* ════════════════════════════════════
-   INFOS CIRCUIT — identique v5
+   INFOS CIRCUIT — depuis championnat ACSM
    ════════════════════════════════════ */
 const SOL_WEATHER = {
   0:'☀️',1:'☀️',2:'🌤',3:'🌤',4:'🌤',5:'🌤',6:'⛅',7:'⛅',8:'🌥',9:'🌥',
@@ -1283,47 +1307,43 @@ const SOL_WEATHER = {
 async function renderNextStageInfo() {
   if (!STATE) return;
   const container = document.getElementById('next-stage-info');
-  let ns = STATE.next_stage || null;
+  // Priorité : next_stage depuis l'API (championship_events sheet)
+  const ns = STATE.next_stage || null;
 
   if (!ns) {
     container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-dim);font-size:13px;font-style:italic;">${t('next_no_info')}</div>`;
     return;
   }
 
-  const trackName  = ns.track_display || ns.track || '—';
-  const layoutName = ns.layout_display || ns.layout || '';
-  const lengthKm   = ns.length_km ? `${ns.length_km} km` : '—';
-  const dateStr    = ns.date || '—';
-  const timeStr    = ns.time_of_day || '—';
-  const stageLabel = LANG==='en' ? (ns.name_en||ns.name_fr||'—') : (ns.name_fr||ns.name_en||'—');
-  const mapSrc     = ns.map_url
-    ? ns.map_url
-    : `https://acsm.revivalseries.fr/content/tracks/${ns.track}/${ns.layout||''}/map.png`;
+  const trackName  = ns.track    || '—';
+  const layoutName = ns.layout   || '';
+  const stageLabel = ns.event_name || '—';
+  const mapSrc     = `https://acsm.revivalseries.fr/content/tracks/${ns.track}/${ns.layout || ''}/map.png`;
+  const duration   = ns.race_duration ? ns.race_duration + ' min' : '—';
 
-  const w = ns.weather || null;
-  let weatherHtml = '';
-  if (w) {
-    const icon  = w.icon || SOL_WEATHER[w.sol_index] || '🌤';
-    const wType = LANG==='en' ? (w.type_en||w.sol_type||'—') : (w.type_fr||w.sol_type||'—');
-    weatherHtml = `
-      <div class="weather-card">
-        <div class="weather-header">${t('next_weather_title')}</div>
-        <div class="weather-body">
-          <div class="weather-icon">${icon}</div>
-          <div class="weather-details">
-            <div class="weather-type">${wType}</div>
-            <div class="weather-grid">
-              <div class="weather-item">🌡 ${LANG==='en'?'Ambient':'Ambiance'} <span>${w.ambient_temp||'—'}</span></div>
-              <div class="weather-item">🛣 ${LANG==='en'?'Road':'Route'} <span>${w.road_temp||'—'}</span></div>
-              <div class="weather-item">💨 ${LANG==='en'?'Wind':'Vent'} <span>${w.wind||'—'}</span></div>
-              <div class="weather-item">🕐 ${LANG==='en'?'Time':'Heure'} <span>${timeStr}</span></div>
-            </div>
+  // Météo depuis CMWFXType
+  const cmwfx   = ns.cmwfx_type || 0;
+  const wIcon   = SOL_WEATHER[cmwfx] || '🌤';
+  const wAmb    = ns.weather_ambient ? ns.weather_ambient + '°C' : '—';
+  const wRoad   = ns.weather_road    ? ns.weather_road + '°C'    : '—';
+  const wWind   = ns.weather_wind    ? ns.weather_wind + ' km/h' : '—';
+
+  const weatherHtml = `
+    <div class="weather-card">
+      <div class="weather-header">${t('next_weather_title')}</div>
+      <div class="weather-body">
+        <div class="weather-icon">${wIcon}</div>
+        <div class="weather-details">
+          <div class="weather-type">Sol type ${cmwfx}</div>
+          <div class="weather-grid">
+            <div class="weather-item">🌡 ${LANG==='en'?'Ambient':'Ambiance'} <span>${wAmb}</span></div>
+            <div class="weather-item">🛣 ${LANG==='en'?'Road':'Route'} <span>${wRoad}</span></div>
+            <div class="weather-item">💨 ${LANG==='en'?'Wind':'Vent'} <span>${wWind}</span></div>
+            <div class="weather-item">⏱ ${LANG==='en'?'Duration':'Durée'} <span>${duration}</span></div>
           </div>
         </div>
-      </div>`;
-  } else {
-    weatherHtml = `<div class="weather-card"><div class="weather-unknown">${t('next_weather_unknown')}</div></div>`;
-  }
+      </div>
+    </div>`;
 
   container.innerHTML = `
     <div class="info-title" style="margin-bottom:10px;">${t('next_circuit_title')} · ${stageLabel}</div>
@@ -1338,12 +1358,12 @@ async function renderNextStageInfo() {
       </div>
       <div class="circuit-meta">
         <div class="circuit-meta-item">
-          <span class="circuit-meta-label">${LANG==='en'?'Length':'Longueur'}</span>
-          <span class="circuit-meta-val">${lengthKm}</span>
+          <span class="circuit-meta-label">${LANG==='en'?'Track':'Circuit'}</span>
+          <span class="circuit-meta-val">${trackName}</span>
         </div>
         <div class="circuit-meta-item">
-          <span class="circuit-meta-label">${LANG==='en'?'Date':'Date'}</span>
-          <span class="circuit-meta-val">${dateStr}</span>
+          <span class="circuit-meta-label">${LANG==='en'?'Duration':'Durée'}</span>
+          <span class="circuit-meta-val">${duration}</span>
         </div>
       </div>
     </div>
@@ -1677,14 +1697,24 @@ async function adminExport() {
 }
 
 let _importParsed = null;
+let _importType   = 'entrylist'; // 'entrylist' | 'championship'
 
-function adminOpenImport() {
+function adminOpenImport(type) {
   _importParsed = null;
+  _importType   = type || 'entrylist';
   document.getElementById('admin-import-result').style.display = 'none';
   const fileLabel = document.getElementById('admin-dropzone-file');
   fileLabel.style.display = 'none'; fileLabel.textContent = '';
   document.getElementById('admin-file-input').value = '';
   document.getElementById('admin-dropzone').classList.remove('drag-over');
+  document.getElementById('admin-dropzone').querySelector('.admin-dropzone-icon').textContent = '📂';
+  if (_importType === 'championship') {
+    document.getElementById('admin-import-modal-title').textContent = '🏆 Importer Championnat ACSM';
+    document.getElementById('admin-import-modal-desc').textContent  = 'Dépose le fichier JSON du championnat exporté depuis ACSM. Importe les étapes, résultats et météo.';
+  } else {
+    document.getElementById('admin-import-modal-title').textContent = '⬆ Importer Entry List ACSM';
+    document.getElementById('admin-import-modal-desc').textContent  = 'Dépose le fichier JSON ACSM. Pilotes existants mis à jour, nouveaux créés.';
+  }
   document.getElementById('admin-import-modal').classList.add('open');
 }
 
@@ -1727,20 +1757,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function adminDoImport() {
   if (!_importParsed) { showToast('Sélectionne un fichier d\'abord'); return; }
-  const cars = _importParsed.Cars || _importParsed.cars || _importParsed.entries || [];
-  if (!cars.length) { showToast('Aucun pilote trouvé dans le fichier'); return; }
   const btn = document.querySelector('#admin-import-modal .btn.primary');
   btn.textContent = '…'; btn.disabled = true;
+  const res = document.getElementById('admin-import-result');
   try {
-    const data = await gasPost('import_entry_list', {
-      cars: cars,
-      stage_id: ADMIN_DATA ? ADMIN_DATA.stage_id : CONFIG.CURRENT_STAGE_ID
-    });
-    if (data.error) throw new Error(data.error);
-    const res = document.getElementById('admin-import-result');
-    res.innerHTML = `✓ <strong>${data.inserted}</strong> créés, <strong>${data.updated}</strong> mis à jour`;
+    let data;
+    if (_importType === 'championship') {
+      data = await gasPost('import_championship', _importParsed);
+      if (data.error) throw new Error(data.error);
+      res.innerHTML = `✓ Championnat importé — <strong>${data.events}</strong> étapes, <strong>${data.results}</strong> résultats`;
+    } else {
+      const cars = _importParsed.Cars || _importParsed.cars || _importParsed.entries || [];
+      if (!cars.length) throw new Error('Aucun pilote trouvé dans le fichier');
+      data = await gasPost('import_entry_list', {
+        cars, stage_id: ADMIN_DATA ? ADMIN_DATA.stage_id : CONFIG.CURRENT_STAGE_ID
+      });
+      if (data.error) throw new Error(data.error);
+      res.innerHTML = `✓ <strong>${data.inserted}</strong> créés, <strong>${data.updated}</strong> mis à jour`;
+    }
     res.style.display = 'block';
-    showToast(`Import OK : ${data.inserted} créés, ${data.updated} mis à jour`);
+    showToast('Import terminé');
     await adminRefresh();
   } catch(e) { showToast('Erreur import : ' + e.message); }
   finally { btn.textContent = 'Importer'; btn.disabled = false; }

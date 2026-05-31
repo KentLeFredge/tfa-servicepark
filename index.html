@@ -1101,10 +1101,18 @@ function initUI() {
   document.getElementById('sel-part-name').textContent = t('select_prompt');
   document.getElementById('damage-desc').textContent   = t('default_desc');
 
-  // Activer onglet admin si l'utilisateur est admin
-  if (AUTH.isAdmin) {
-    adminShowTab();
-    adminRefresh(); // Précharger les données admin en arrière-plan
+  // Vérifier les droits admin directement via l'API (plus fiable que le param URL)
+  if (!AUTH.demo) {
+    gasGet('admin_overview')
+      .then(function(data) {
+        if (!data.error) {
+          AUTH.isAdmin = true;
+          sessionStorage.setItem('tfa_is_admin', '1');
+          adminShowTab();
+          adminRender(data); // données déjà chargées, on en profite
+        }
+      })
+      .catch(function() {}); // silencieux si pas admin
   }
 
   renderAll();

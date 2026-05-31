@@ -661,8 +661,9 @@ const CONFIG = {
     <div class="admin-toolbar">
       <div class="admin-stage-badge" id="admin-stage-badge">—</div>
       <button class="btn primary" id="admin-btn-refresh" onclick="adminRefresh()">↻ Rafraîchir</button>
-      <button class="btn" style="border-color:var(--green);color:var(--green);" id="admin-btn-import" onclick="adminOpenImport('entrylist')">⬆ Entry list</button>
+      <button class="btn" style="border-color:var(--green);color:var(--green);" id="admin-btn-import" onclick="adminOpenImport('session_csv')">📋 Résultats session</button>
       <button class="btn" style="border-color:var(--yellow);color:var(--yellow);" id="admin-btn-champ" onclick="adminOpenImport('championship')">🏆 Championnat</button>
+      <button class="btn" style="border-color:var(--border-l);color:var(--text-dim);" onclick="adminOpenImport('entrylist')">👥 Entry list</button>
       <button class="btn" style="border-color:var(--cyan);color:var(--cyan);" id="admin-btn-export" onclick="adminExport()">⬇ Exporter entry list</button>
       <input type="text" id="admin-inp-stage" placeholder="etape_02" style="font-family:'Barlow Condensed',sans-serif;font-size:13px;padding:5px 8px;background:var(--bg-panel);border:1px solid var(--border-l);color:var(--text);width:110px;" />
       <button class="btn" onclick="adminSetStage()">Changer étape</button>
@@ -1768,28 +1769,43 @@ function adminOpenImport(type) {
   document.getElementById('admin-file-input').value = '';
   document.getElementById('admin-dropzone').classList.remove('drag-over');
   document.getElementById('admin-dropzone').querySelector('.admin-dropzone-icon').textContent = '📂';
-  if (_importType === 'championship') {
-    document.getElementById('admin-import-modal-title').textContent = '🏆 Importer Championnat ACSM';
-    document.getElementById('admin-import-modal-desc').textContent  = 'Dépose le fichier JSON du championnat exporté depuis ACSM. Importe les étapes, résultats et météo.';
-  } else {
-    document.getElementById('admin-import-modal-title').textContent = '⬆ Importer Entry List ACSM';
-    document.getElementById('admin-import-modal-desc').textContent  = 'Dépose le fichier JSON ACSM. Pilotes existants mis à jour, nouveaux créés.';
-  }
+  const titles = {
+    session_csv:  ['📋 Résultats de session', 'Dépose le fichier .csv exporté depuis stracker/ACSM. Importe positions, temps et calcule les dégâts depuis les collisions.'],
+    championship: ['🏆 Importer Championnat',  'Dépose le fichier JSON du championnat exporté depuis ACSM. Importe les étapes, météo et résultats.'],
+    entrylist:    ['👥 Importer Entry List',    'Dépose le fichier JSON ACSM. Pilotes existants mis à jour, nouveaux créés.'],
+  };
+  const [title, desc] = titles[_importType] || titles.entrylist;
+  document.getElementById('admin-import-modal-title').textContent = title;
+  document.getElementById('admin-import-modal-desc').textContent  = desc;
   document.getElementById('admin-import-modal').classList.add('open');
 }
 
 function adminLoadFile(file) {
-  if (!file || !file.name.endsWith('.json')) { showToast('Fichier JSON requis'); return; }
+  if (!file) return;
+  const isCsv  = file.name.endsWith('.csv');
+  const isJson = file.name.endsWith('.json');
+  if (_importType === 'session_csv' && !isCsv) { showToast('Fichier .csv requis'); return; }
+  if (_importType !== 'session_csv' && !isJson) { showToast('Fichier .json requis'); return; }
+
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
-      _importParsed = JSON.parse(e.target.result);
-      const count = (_importParsed.Cars || _importParsed.cars || []).length;
-      const label = document.getElementById('admin-dropzone-file');
-      label.textContent = `✓ ${file.name} — ${count} pilote(s) détecté(s)`;
-      label.style.display = 'block';
-      document.getElementById('admin-dropzone-icon') && (document.getElementById('admin-dropzone').querySelector('.admin-dropzone-icon').textContent = '✅');
-    } catch(err) { showToast('Fichier JSON invalide'); _importParsed = null; }
+      if (isCsv) {
+        _importParsed = e.target.result; // texte brut
+        // Compter les collisions pour feedback
+        const hits = (e.target.result.match(/reported contact with/g) || []).length;
+        const label = document.getElementById('admin-dropzone-file');
+        label.textContent = `✓ ${file.name} — ${hits} collision(s) détectée(s)`;
+        label.style.display = 'block';
+      } else {
+        _importParsed = JSON.parse(e.target.result);
+        const count = (_importParsed.Cars || _importParsed.cars || _importParsed.Events || []).length;
+        const label = document.getElementById('admin-dropzone-file');
+        label.textContent = `✓ ${file.name} — ${count} entrée(s) détectée(s)`;
+        label.style.display = 'block';
+      }
+      document.getElementById('admin-dropzone').querySelector('.admin-dropzone-icon').textContent = '✅';
+    } catch(err) { showToast('Fichier invalide : ' + err.message); _importParsed = null; }
   };
   reader.readAsText(file);
 }
@@ -1822,10 +1838,25 @@ async function adminDoImport() {
   const res = document.getElementById('admin-import-result');
   try {
     let data;
-    if (_importType === 'championship') {
+    if (_importType === 'session_csv') {
+      // Envoi du CSV en texte brut
+      const url = new URL(CONFIG.APPS_SCRIPT_URL);
+      url.searchParams.set('action',   'import_session_csv');
+      url.searchParams.set('token',    AUTH.token);
+      url.searchParams.set('steam_id', AUTH.steamId);
+      url.searchParams.set('stage_id', STAGE_ID);
+      const r = await fetch(url.toString(), { method: 'POST', body: _importParsed });
+      data = await r.json();
+      if (data.error) throw new Error(data.error);
+      let msg = `✓ <strong>${data.results}</strong> résultats, <strong>${data.damage_entries}</strong> dégâts calculés`;
+      if (data.unmatched && data.unmatched.length) {
+        msg += `<br><span style="color:var(--yellow)">⚠ Non trouvés dans la BDD : ${data.unmatched.join(', ')}</span>`;
+      }
+      res.innerHTML = msg;
+    } else if (_importType === 'championship') {
       data = await gasPost('import_championship', _importParsed);
       if (data.error) throw new Error(data.error);
-      res.innerHTML = `✓ Championnat importé — <strong>${data.events}</strong> étapes, <strong>${data.results}</strong> résultats`;
+      res.innerHTML = `✓ Championnat importé — <strong>${data.events}</strong> étapes, <strong>${data.results}</strong> résultats, <strong>${data.damage_entries}</strong> dégâts`;
     } else {
       const cars = _importParsed.Cars || _importParsed.cars || _importParsed.entries || [];
       if (!cars.length) throw new Error('Aucun pilote trouvé dans le fichier');

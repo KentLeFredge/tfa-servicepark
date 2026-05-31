@@ -277,6 +277,9 @@ function doPost(e) {
   if (action === 'import_championship')   return withAdminToken(e, function() {
     return jsonResponse(importChampionship(body));
   });
+  if (action === 'import_session_csv')    return withAdminToken(e, function() {
+    return jsonResponse(importSessionCsv(e.postData.contents || ''));
+  });
   if (action === 'reset_stage')           return withAdminToken(e, function() {
     return jsonResponse(resetStage(body.stage_id || PROPS.getProperty('CURRENT_STAGE_ID')));
   });
@@ -931,6 +934,184 @@ function saveConfigFromAdmin(configObj) {
   });
 
   return { ok: true };
+}
+
+// ──────────────────────────────────────────────────────────────
+// ADMIN — IMPORT SESSION CSV (stracker/ACSM export)
+// ──────────────────────────────────────────────────────────────
+
+function importSessionCsv(csvText) {
+  var cfg     = getDmgConfig();
+  var stageId = PROPS.getProperty('CURRENT_STAGE_ID');
+
+  // ── 1. Construire l'index nom → GUID depuis driver_state ──
+  var dsSheet  = getSheet('driver_state');
+  var dsData   = dsSheet.getDataRange().getValues();
+  var dsHeaders= dsData[0];
+  var nameToGuid = {};
+  var nameToRow  = {};
+  for (var i = 1; i < dsData.length; i++) {
+    var n = String(dsData[i][dsHeaders.indexOf('driver_name')] || '').toLowerCase().trim();
+    var g = String(dsData[i][dsHeaders.indexOf('driver_guid')] || '');
+    if (n && g) { nameToGuid[n] = g; nameToRow[g] = i + 1; }
+  }
+
+  function findGuid(name) {
+    var n = (name || '').toLowerCase().trim();
+    if (nameToGuid[n]) return nameToGuid[n];
+    // Recherche partielle si nom exact non trouvé
+    var keys = Object.keys(nameToGuid);
+    for (var k = 0; k < keys.length; k++) {
+      if (keys[k].indexOf(n) !== -1 || n.indexOf(keys[k]) !== -1) return nameToGuid[keys[k]];
+    }
+    return null;
+  }
+
+  var lines = csvText.split('\n');
+
+  // ── 2. Parser "Race result" → positions + meilleur tour ──
+  var inRaceResult = false;
+  var stageResults = []; // { name, pos, laps, total_time, best_lap_ms }
+
+  for (var li = 0; li < lines.length; li++) {
+    var line = lines[li].trim();
+    if (line.indexOf('Race result') !== -1) { inRaceResult = true; continue; }
+    if (inRaceResult && line.indexOf('Race laps') !== -1) { inRaceResult = false; break; }
+    if (!inRaceResult) continue;
+    // Ligne de résultat : "1", "", "Team", "Vehicle", "Driver", "Laps", "Time", "Best lap", ...
+    var m = line.match(/^"(\d+)",\s*"[^"]*",\s*"[^"]*",\s*"[^"]*",\s*"([^"]+)",\s*"(\d+)",\s*"([^"]+)",\s*"([^"]+)"/);
+    if (!m) continue;
+    var pos      = Number(m[1]);
+    var drvName  = m[2].trim();
+    var laps     = Number(m[3]);
+    var bestLap  = m[5].trim(); // format MM:SS.mmm
+    stageResults.push({ name: drvName, pos: pos, laps: laps, best_lap_str: bestLap });
+  }
+
+  // ── 3. Parser collisions ──
+  // Format : "", "Driver reported contact with environment/another vehicle X. Impact speed: 12.34",
+  var collisionsByName = {}; // name → [{ type, speed }]
+  var colRe = /"", "(.+?) reported contact with (environment|another vehicle .+?)\. Impact speed: ([\d.]+)"/;
+
+  for (var lj = 0; lj < lines.length; lj++) {
+    var mc = lines[lj].match(colRe);
+    if (!mc) continue;
+    var dName = mc[1].trim();
+    var cType = mc[2].trim();
+    var speed = parseFloat(mc[3]);
+    if (!collisionsByName[dName]) collisionsByName[dName] = [];
+    collisionsByName[dName].push({ type: cType, speed: speed });
+  }
+
+  // ── 4. Calculer dégâts par pilote ──
+  // Sans RelPosition : environment → avant (refroidissement/chassis), vehicle → côté (suspension/direction)
+  function assignComponent(contactType, speed, cfg) {
+    var isEnv = contactType === 'environment';
+    if (isEnv) {
+      // Choc mur : avant de la voiture
+      if (speed >= cfg.severeMax)  return 'refroidissement'; // très fort → radiateur détruit
+      if (speed >= cfg.modereMax)  return 'chassis';         // fort → châssis
+      if (speed >= cfg.legerMax)   return 'direction';       // modéré → direction
+      return 'direction';
+    } else {
+      // Choc voiture : côté
+      if (speed >= cfg.severeMax)  return 'chassis';
+      if (speed >= cfg.modereMax)  return 'suspension';
+      return 'suspension';
+    }
+  }
+
+  var dmgByName = {}; // name → { compId: { speed, severity } }
+  Object.keys(collisionsByName).forEach(function(name) {
+    var hits = collisionsByName[name];
+    dmgByName[name] = {};
+    hits.forEach(function(hit) {
+      var sev = speedToSeverity(hit.speed, cfg);
+      if (!sev) return;
+      var compId   = assignComponent(hit.type, hit.speed, cfg);
+      var existing = dmgByName[name][compId];
+      if (!existing || hit.speed > existing.speed) {
+        dmgByName[name][compId] = { speed: hit.speed, severity: sev };
+      }
+    });
+  });
+
+  // ── 5. Écrire stage_results ──
+  var srSheet = getOrCreateSheet('stage_results',
+    ['event_index','driver_guid','driver_name','car_model','skin','best_lap_ms','laps','position','class_id']);
+
+  // Supprimer les entrées existantes pour ce stageId
+  var srData = srSheet.getDataRange().getValues();
+  var srHeaders = srData[0];
+  var srStageIdx = srHeaders.indexOf('event_index');
+  for (var si = srData.length - 1; si >= 1; si--) {
+    if (String(srData[si][srStageIdx]) === String(stageId)) srSheet.deleteRow(si + 1);
+  }
+
+  var inserted = 0;
+  stageResults.forEach(function(r) {
+    var guid    = findGuid(r.name);
+    var bestMs  = timeStrToMs(r.best_lap_str);
+    // Récupérer car_model depuis driver_state
+    var carModel = '';
+    if (guid && nameToRow[guid]) {
+      carModel = String(dsData[nameToRow[guid] - 1][dsHeaders.indexOf('car_model')] || '');
+    }
+    srSheet.appendRow([stageId, guid || '', r.name, carModel, '', bestMs, r.laps, r.pos, '']);
+    inserted++;
+  });
+
+  // ── 6. Écrire damage_components ──
+  var dcSheet = getOrCreateSheet('damage_components',
+    ['driver_guid','stage_id','component_id','score','severity','ballast_kg','restrictor','repair_min','repaired']);
+
+  // Supprimer les entrées existantes pour ce stageId
+  var dcData = dcSheet.getDataRange().getValues();
+  var dcHeaders = dcData[0];
+  var dcStageIdx = dcHeaders.indexOf('stage_id');
+  for (var di = dcData.length - 1; di >= 1; di--) {
+    if (String(dcData[di][dcStageIdx]) === String(stageId)) dcSheet.deleteRow(di + 1);
+  }
+
+  var dmgInserted = 0;
+  var dcRows = [];
+  Object.keys(dmgByName).forEach(function(name) {
+    var guid = findGuid(name);
+    if (!guid) return;
+    var driverDmg = dmgByName[name];
+    Object.keys(driverDmg).forEach(function(compId) {
+      var hit = driverDmg[compId];
+      var sev = hit.severity;
+      var pen = severityToPenalties(sev, cfg);
+      var score = speedToScore(hit.speed, cfg);
+      dcRows.push([guid, stageId, compId, score, sev, pen.ballast_kg, pen.restrictor, pen.repair_min, false]);
+      dmgInserted++;
+    });
+  });
+  if (dcRows.length > 0) {
+    dcSheet.getRange(dcSheet.getLastRow() + 1, 1, dcRows.length, 9).setValues(dcRows);
+  }
+
+  return {
+    ok:             true,
+    stage_id:       stageId,
+    results:        inserted,
+    damage_entries: dmgInserted,
+    unmatched:      stageResults.filter(function(r) { return !findGuid(r.name); }).map(function(r) { return r.name; }),
+  };
+}
+
+// Convertit "MM:SS.mmm" → millisecondes
+function timeStrToMs(str) {
+  if (!str || str === '-') return 0;
+  str = str.trim().replace(/'+/, '');
+  var parts = str.split(':');
+  if (parts.length === 2) {
+    var mins = parseFloat(parts[0]) || 0;
+    var secs = parseFloat(parts[1]) || 0;
+    return Math.round((mins * 60 + secs) * 1000);
+  }
+  return 0;
 }
 
 // ──────────────────────────────────────────────────────────────

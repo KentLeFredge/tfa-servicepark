@@ -35,26 +35,105 @@ var PROPS = PropertiesService.getScriptProperties();
   └──────────────────────────────┴─────────┴────────────────────────────────────┘
 */
 
+// Valeurs par défaut si la feuille config est absente ou incomplète
+var CONFIG_DEFAULTS = {
+  DMG_MIN_SPEED:           10,
+  DMG_LEGER_MAX:           25,
+  DMG_MODERE_MAX:          50,
+  DMG_SEVERE_MAX:          80,
+  DMG_BALLAST_LEGER:        5,
+  DMG_BALLAST_MODERE:      10,
+  DMG_BALLAST_SEVERE:      20,
+  DMG_BALLAST_CRITIQUE:    30,
+  DMG_RESTRICTOR_LEGER:     0,
+  DMG_RESTRICTOR_MODERE:    5,
+  DMG_RESTRICTOR_SEVERE:   10,
+  DMG_RESTRICTOR_CRITIQUE: 15,
+  DMG_REPAIR_LEGER:         8,
+  DMG_REPAIR_MODERE:       15,
+  DMG_REPAIR_SEVERE:       25,
+  DMG_REPAIR_CRITIQUE:     40,
+  DMG_MERGE_MODE:       'worst',
+  REPAIR_BUDGET_MIN:       60,
+};
+
+var CONFIG_DESCRIPTIONS = {
+  DMG_MIN_SPEED:           'Vitesse min (km/h) pour qu\'un choc cause des dégâts',
+  DMG_LEGER_MAX:           'Seuil (km/h) léger → modéré',
+  DMG_MODERE_MAX:          'Seuil (km/h) modéré → sévère',
+  DMG_SEVERE_MAX:          'Seuil (km/h) sévère → critique',
+  DMG_BALLAST_LEGER:       'Ballast (kg) — sévérité légère',
+  DMG_BALLAST_MODERE:      'Ballast (kg) — sévérité modérée',
+  DMG_BALLAST_SEVERE:      'Ballast (kg) — sévérité sévère',
+  DMG_BALLAST_CRITIQUE:    'Ballast (kg) — sévérité critique',
+  DMG_RESTRICTOR_LEGER:    'Restrictor — sévérité légère',
+  DMG_RESTRICTOR_MODERE:   'Restrictor — sévérité modérée',
+  DMG_RESTRICTOR_SEVERE:   'Restrictor — sévérité sévère',
+  DMG_RESTRICTOR_CRITIQUE: 'Restrictor — sévérité critique',
+  DMG_REPAIR_LEGER:        'Temps réparation (min) — légère',
+  DMG_REPAIR_MODERE:       'Temps réparation (min) — modérée',
+  DMG_REPAIR_SEVERE:       'Temps réparation (min) — sévère',
+  DMG_REPAIR_CRITIQUE:     'Temps réparation (min) — critique',
+  DMG_MERGE_MODE:          '"worst" = pire choc retenu / "sum" = cumul atténué',
+  REPAIR_BUDGET_MIN:       'Budget temps de réparation alloué aux pilotes (min)',
+};
+
+// Lit la feuille config et retourne un objet key→value
+function readConfigSheet() {
+  var cfg = {};
+  // Valeurs par défaut
+  Object.keys(CONFIG_DEFAULTS).forEach(function(k) { cfg[k] = CONFIG_DEFAULTS[k]; });
+  var sheet = getSheet('config');
+  if (!sheet) return cfg;
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    var key = String(data[i][0] || '').trim();
+    var val = data[i][1];
+    if (key && val !== '' && val !== null && val !== undefined) cfg[key] = val;
+  }
+  return cfg;
+}
+
+// Crée la feuille config avec toutes les clés si elle n'existe pas
+function ensureConfigSheet() {
+  var ss    = SpreadsheetApp.openById(PROPS.getProperty('SHEET_ID'));
+  var sheet = ss.getSheetByName('config');
+  if (!sheet) {
+    sheet = ss.insertSheet('config');
+    sheet.appendRow(['key', 'value', 'description']);
+    Object.keys(CONFIG_DEFAULTS).forEach(function(k) {
+      sheet.appendRow([k, CONFIG_DEFAULTS[k], CONFIG_DESCRIPTIONS[k] || '']);
+    });
+    // Mise en forme basique
+    sheet.getRange(1, 1, 1, 3).setFontWeight('bold');
+    sheet.setColumnWidth(1, 220);
+    sheet.setColumnWidth(2, 80);
+    sheet.setColumnWidth(3, 380);
+  }
+  return sheet;
+}
+
 function getDmgConfig() {
-  var p = PROPS;
+  var raw = readConfigSheet();
   return {
-    minSpeed:           Number(p.getProperty('DMG_MIN_SPEED'))           || 10,
-    legerMax:           Number(p.getProperty('DMG_LEGER_MAX'))           || 25,
-    modereMax:          Number(p.getProperty('DMG_MODERE_MAX'))          || 50,
-    severeMax:          Number(p.getProperty('DMG_SEVERE_MAX'))          || 80,
-    ballast:  { leger:  Number(p.getProperty('DMG_BALLAST_LEGER'))       || 5,
-                modere: Number(p.getProperty('DMG_BALLAST_MODERE'))      || 10,
-                severe: Number(p.getProperty('DMG_BALLAST_SEVERE'))      || 20,
-                critique:Number(p.getProperty('DMG_BALLAST_CRITIQUE'))   || 30 },
-    restrictor:{ leger: Number(p.getProperty('DMG_RESTRICTOR_LEGER'))   || 0,
-                modere: Number(p.getProperty('DMG_RESTRICTOR_MODERE'))   || 5,
-                severe: Number(p.getProperty('DMG_RESTRICTOR_SEVERE'))   || 10,
-                critique:Number(p.getProperty('DMG_RESTRICTOR_CRITIQUE'))|| 15 },
-    repair:   { leger:  Number(p.getProperty('DMG_REPAIR_LEGER'))        || 8,
-                modere: Number(p.getProperty('DMG_REPAIR_MODERE'))       || 15,
-                severe: Number(p.getProperty('DMG_REPAIR_SEVERE'))       || 25,
-                critique:Number(p.getProperty('DMG_REPAIR_CRITIQUE'))    || 40 },
-    mergeMode:          p.getProperty('DMG_MERGE_MODE')                  || 'worst',
+    minSpeed:  Number(raw.DMG_MIN_SPEED)  || 10,
+    legerMax:  Number(raw.DMG_LEGER_MAX)  || 25,
+    modereMax: Number(raw.DMG_MODERE_MAX) || 50,
+    severeMax: Number(raw.DMG_SEVERE_MAX) || 80,
+    ballast:   { leger:   Number(raw.DMG_BALLAST_LEGER)       || 5,
+                 modere:  Number(raw.DMG_BALLAST_MODERE)      || 10,
+                 severe:  Number(raw.DMG_BALLAST_SEVERE)      || 20,
+                 critique:Number(raw.DMG_BALLAST_CRITIQUE)    || 30 },
+    restrictor:{ leger:   Number(raw.DMG_RESTRICTOR_LEGER)    || 0,
+                 modere:  Number(raw.DMG_RESTRICTOR_MODERE)   || 5,
+                 severe:  Number(raw.DMG_RESTRICTOR_SEVERE)   || 10,
+                 critique:Number(raw.DMG_RESTRICTOR_CRITIQUE) || 15 },
+    repair:    { leger:   Number(raw.DMG_REPAIR_LEGER)        || 8,
+                 modere:  Number(raw.DMG_REPAIR_MODERE)       || 15,
+                 severe:  Number(raw.DMG_REPAIR_SEVERE)       || 25,
+                 critique:Number(raw.DMG_REPAIR_CRITIQUE)     || 40 },
+    mergeMode: String(raw.DMG_MERGE_MODE  || 'worst'),
+    repairBudget: Number(raw.REPAIR_BUDGET_MIN) || 60,
   };
 }
 
@@ -173,6 +252,9 @@ function doGet(e) {
   if (action === 'export_entry_list')     return withAdminToken(e, function() {
     return jsonResponse(exportEntryList());
   });
+  if (action === 'get_config')            return withAdminToken(e, function() {
+    return jsonResponse(getConfigForAdmin());
+  });
   return jsonResponse({ error: 'unknown_action' });
 }
 
@@ -201,6 +283,9 @@ function doPost(e) {
   if (action === 'set_stage')             return withAdminToken(e, function() {
     PROPS.setProperty('CURRENT_STAGE_ID', body.stage_id);
     return jsonResponse({ ok: true, stage_id: body.stage_id });
+  });
+  if (action === 'save_config')           return withAdminToken(e, function() {
+    return jsonResponse(saveConfigFromAdmin(body.config || {}));
   });
   return jsonResponse({ error: 'unknown_action' });
 }
@@ -654,6 +739,7 @@ function importChampionship(data) {
   var events      = data.Events || [];
   var totalResults= 0;
   var totalDamage = 0;
+  ensureConfigSheet(); // crée la feuille config avec les défauts si absente
   var cfg         = getDmgConfig();
 
   // ── Feuille damage_components (vider les entrées de ce championnat) ──
@@ -798,6 +884,53 @@ function importChampionship(data) {
   }
 
   return { ok: true, events: events.length, results: totalResults, damage_entries: totalDamage };
+}
+
+// ──────────────────────────────────────────────────────────────
+// ADMIN — CONFIG (lecture/écriture feuille config)
+// ──────────────────────────────────────────────────────────────
+
+function getConfigForAdmin() {
+  ensureConfigSheet();
+  var sheet   = getSheet('config');
+  var data    = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var rows    = [];
+  for (var i = 1; i < data.length; i++) {
+    rows.push({
+      key:         String(data[i][0] || ''),
+      value:       data[i][1],
+      description: String(data[i][2] || ''),
+    });
+  }
+  return { ok: true, config: rows };
+}
+
+function saveConfigFromAdmin(configObj) {
+  // configObj = { key: value, ... }
+  ensureConfigSheet();
+  var sheet   = getSheet('config');
+  var data    = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var keyIdx  = 0; // colonne A = key
+  var valIdx  = 1; // colonne B = value
+
+  // Index des lignes existantes
+  var rowMap = {};
+  for (var i = 1; i < data.length; i++) {
+    rowMap[String(data[i][keyIdx])] = i + 1;
+  }
+
+  Object.keys(configObj).forEach(function(key) {
+    var val = configObj[key];
+    if (rowMap[key]) {
+      sheet.getRange(rowMap[key], valIdx + 1).setValue(val);
+    } else {
+      sheet.appendRow([key, val, CONFIG_DESCRIPTIONS[key] || '']);
+    }
+  });
+
+  return { ok: true };
 }
 
 // ──────────────────────────────────────────────────────────────

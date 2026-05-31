@@ -96,11 +96,7 @@ function handleSteamCallback(e) {
   var claimedId = e.parameter['openid.claimed_id'] || '';
   var steamId   = claimedId.replace(/.*\//, '');
   if (!/^\d{17}$/.test(steamId))       return HtmlService.createHtmlOutput('<h2>Auth failed: invalid Steam ID</h2>');
-  try {
-    if (!verifySteamSignature(e.parameters)) return HtmlService.createHtmlOutput('<h2>Auth failed: signature invalide (false)</h2>');
-  } catch(e) {
-    return HtmlService.createHtmlOutput('<h2>Auth failed: ' + e.message + '</h2>');
-  }
+  if (!verifySteamSignature(e.parameters)) return HtmlService.createHtmlOutput('<h2>Auth failed: signature invalide</h2>');
 
   var token      = generateToken(steamId);
   var serviceUrl = PROPS.getProperty('SERVICE_PARK_URL');
@@ -125,20 +121,11 @@ function verifySteamSignature(params) {
       postParams.push(encodeURIComponent(key) + '=' + encodeURIComponent(val));
     }
   }
-  try {
-    var response = UrlFetchApp.fetch('https://steamcommunity.com/openid/login', {
-      method: 'post', contentType: 'application/x-www-form-urlencoded',
-      payload: postParams.join('&'), muteHttpExceptions: true
-    });
-    var text = response.getContentText();
-    Logger.log('Steam response: ' + text);
-    if (text.indexOf('is_valid:true') !== -1) return true;
-    // Retourner la réponse Steam dans l'erreur pour debug
-    throw new Error('STEAM_RESPONSE:' + text.substring(0, 300));
-  } catch(e) {
-    if (e.message.indexOf('STEAM_RESPONSE:') === 0) throw e;
-    throw new Error('FETCH_ERROR:' + e.message);
-  }
+  var response = UrlFetchApp.fetch('https://steamcommunity.com/openid/login', {
+    method: 'post', contentType: 'application/x-www-form-urlencoded',
+    payload: postParams.join('&'), muteHttpExceptions: true
+  });
+  return response.getContentText().indexOf('is_valid:true') !== -1;
 }
 
 function generateToken(steamId) {

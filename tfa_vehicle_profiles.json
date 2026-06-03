@@ -1,2247 +1,753 @@
 {
   "_meta": {
-    "schema_version": "1.0",
-    "description": "TFA Vehicle Damage Profiles \u2014 zone x component weight matrix",
-    "sources": [
-      "ACL GTC60 Manual v1.3",
-      "ACL WSC60 Manual v1.3"
-    ],
-    "weight_legend": {
-      "P": 1.0,
-      "S": 0.35,
-      "-": 0.0
-    },
-    "zones": [
-      "AVANT",
-      "ARRIERE",
-      "LATERAL_G",
-      "LATERAL_D",
-      "AERIEN"
-    ],
-    "components": [
-      "refroidissement",
-      "direction",
-      "transmission",
-      "suspension",
-      "chassis"
-    ]
+    "schema_version": "2.0",
+    "description": "TFA Vehicle Damage Profiles — zone x component weight matrix",
+    "sources": ["ACL GTC60 Pack v1.3+", "ACL WSC60 Pack v1.3+"],
+    "weight_legend": { "P": 1.0, "S": 0.35, "-": 0.0 },
+    "zones": ["AVANT","ARRIERE","LATERAL_G","LATERAL_D","AERIEN"],
+    "components": ["refroidissement","direction","transmission","suspension","chassis"],
+    "layout_types": {
+      "FRONT_ENGINE":  "Moteur AV, radiateur AV — Ferrari 250 GTO, Cobra, Mustang, Healey...",
+      "REAR_ENGINE":   "Moteur AR, refroidissement AR/latéral — Porsche 911/904/906/910, Abarth",
+      "MID_FRONT_RAD": "Moteur central, radiateur AV — Ferrari 250LM, Brabham BT8",
+      "MID_SIDE_RAD":  "Moteur central, radiateurs latéraux — GT40, 330P/365P, Chaparral 2D",
+      "MID_LARGE":     "Moteur central gros V12/V8, tout exposé — Chaparral 2F, Maserati 151"
+    }
   },
   "repair_cost_max_min": {
-    "refroidissement": 40,
-    "direction": 35,
-    "transmission": 30,
-    "suspension": 20,
-    "chassis": 50
+    "refroidissement": 40, "direction": 35, "transmission": 30, "suspension": 20, "chassis": 50
   },
   "penalty_max": {
-    "refroidissement": {
-      "type": "restrictor",
-      "max": 12
-    },
-    "direction": {
-      "type": "ballast_kg",
-      "max": 20
-    },
-    "transmission": {
-      "type": "restrictor",
-      "max": 8
-    },
-    "suspension": {
-      "type": "ballast_kg",
-      "max": 8
-    },
-    "chassis": {
-      "type": "ballast_kg",
-      "max": 20
-    }
+    "refroidissement": { "type": "restrictor", "max": 12 },
+    "direction":       { "type": "ballast_kg",  "max": 20 },
+    "transmission":    { "type": "restrictor", "max": 8  },
+    "suspension":      { "type": "ballast_kg",  "max": 8  },
+    "chassis":         { "type": "ballast_kg",  "max": 20 }
   },
   "damage_curve_exponent": 0.7,
   "impact_speed_min_kmh": 8.0,
   "env_multiplier": 1.0,
   "car_multiplier": 0.7,
   "speed_exponent": 1.8,
+  "speed_reference_car_kmh": 100.0,
+  "speed_reference_env_kmh": 150.0,
+
   "packs": {
     "acl_gtc60": {
-      "name": "AC Legends GTC 60's Pack",
-      "version": "1.3",
+      "name": "AC Legends GTC 60s Pack",
       "vehicles": {
-        "ac_legends_gtc_ferrari_250_gto_8hlmc": {
+
+        "ac_legends_gtc_ferrari_250_gto": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_ferrari_250_gto_s2_8hlmc": {
+        "ac_legends_gtc_ferrari_250gto_s2": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_ferrari_250_gt_swb_8hlmc": {
+        "ac_legends_gtc_ferrari_250gt_swb": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_ferrari_275_gtb_8hlmc": {
+        "ac_legends_gtc_ferrari_275gtb_c": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_jaguar_etype_le_mans_8hlmc": {
+        "ac_legends_gtc_jaguar_e_type_lw": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_jaguar_etype_lm_8hlmc": {
+        "ac_legends_gtc_jaguar_etype_lm": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_porsche_911_swb_8hlmc": {
+        "ac_legends_gtc_mercedes_300sl": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 1.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":0.35,"direction":1.0,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_shelby_mustang350_8hlmc": {
+        "ac_legends_gtc_healey_3000_lw": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 0.35,
-              "chassis": 0.0
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":0.35,"chassis":0.0 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_elan_26r_8hlmc": {
+        "ac_legends_gtc_sunbeam_tiger": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 1.0,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":0.35,"chassis":0.0 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "gadu_alfa_romeo_tz2_endurance": {
+        "ac_legends_gtc_toyota_311s": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_alfa_romeo_giulia_tz_8hlmc": {
+        "ac_legends_gtc_ginetta_g10": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_alfa_romeo_tz2_8hlmc": {
+        "ac_legends_gtc_elan_26r": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.35,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":0.35,"direction":1.0,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_aston_martin_db4_zagato_8hlmc": {
+        "ac_legends_gtc_aston_martin_db4z": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.0
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.0 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_bizzarrini_gt5300_8hlmc": {
+        "ac_legends_gtc_bizzarrini_5300": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 0.35,
-              "chassis": 0.0
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":0.35,"chassis":0.0 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.35,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.35,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_abarth_simca_2000_8hlmc": {
+        "ac_legends_gtc_corvette_63": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 1.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":0.35,"chassis":0.0 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_chevrolet_corvette_327_8hlmc": {
+        "ac_legends_gtc_corvette67": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 0.35,
-              "chassis": 0.0
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":0.35,"chassis":0.0 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_corvette_scca_8hlmc": {
+        "ac_legends_gtc_shelby_mustang350": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 0.35,
-              "chassis": 0.0
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":0.35,"chassis":0.0 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_shelby_cobra_289_8hlmc": {
+        "ac_legends_gtc_shelby_cobra_289": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_shelby_cobra_289_hardtop_8hlmc": {
+        "ac_legends_gtc_shelby_cobra_comp": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_ginetta_g10_8hlmc": {
+        "ac_legends_gtc_tvr_griffith_200": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_healey_3000_lw_8hlmc": {
+
+        "ac_legends_gtc_abarth_simca_2000": {
+          "_layout": "REAR_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 0.35,
-              "chassis": 0.0
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":1.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.35,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.35,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_mercedes_300sl_8hlmc": {
+        "ac_legends_gtc_porsche_911_swb": {
+          "_layout": "REAR_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 1.0,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":1.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.35,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.35,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_porsche_904_gts_8hlmc": {
+        "ac_legends_gtc_porsche_904": {
+          "_layout": "REAR_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 1.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":1.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_porsche_904_6_8hlmc": {
+        "ac_legends_gtc_porsche_904_4_gts": {
+          "_layout": "REAR_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 1.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":1.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_sunbeam_tiger_289_8hlmc": {
+
+        "ac_legends_gtc_alfa_tz": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 0.35,
-              "chassis": 0.0
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "ac_legends_gtc_toyota_2000gt_311s_8hlmc": {
+        "ac_legends_gtc_alfa_33_stradale": {
+          "_layout": "MID_SIDE_RAD",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "tvr_griffith_200": {
+        "ac_legends_gtc_alfa_33_stradale_8hlmc": {
+          "_layout": "MID_SIDE_RAD",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
           }
         }
       }
     },
+
     "acl_wsc60": {
-      "name": "AC Legends WSC 60's Pack",
-      "version": "1.3",
+      "name": "AC Legends WSC 60s Pack",
       "vehicles": {
-        "wsc_legends_alfa_romeo_tipo_33": {
-          "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.35,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_G": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
-          }
-        },
-        "wsc_legends_alpine_a210": {
-          "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "ARRIERE": {
-              "refroidissement": 1.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
-          }
-        },
-        "wsc_legends_alpine_a211": {
-          "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "ARRIERE": {
-              "refroidissement": 1.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
-          }
-        },
-        "wsc_legends_brabham_bt8": {
-          "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
-          }
-        },
-        "wsc_legends_chaparral_2d": {
-          "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.35,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_G": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
-          }
-        },
-        "wsc_legends_chaparral_2f": {
-          "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.35,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_G": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
-          }
-        },
-        "wsc_legends_corvette_gs": {
-          "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 0.35,
-              "chassis": 0.0
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
-          }
-        },
-        "wsc_legends_corvette_gs_roadster": {
-          "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 0.35,
-              "chassis": 0.0
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
-          }
-        },
-        "wsc_legends_chevron_gt": {
-          "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "ARRIERE": {
-              "refroidissement": 1.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
-          }
-        },
-        "wsc_legends_ferrari_250lm": {
-          "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.35,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
-          }
-        },
-        "wsc_legends_365p2_spyder": {
-          "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.35,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_G": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
-          }
-        },
-        "wsc_legends_ferrari_dino_206s": {
-          "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "ARRIERE": {
-              "refroidissement": 0.35,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_G": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
-          }
-        },
+
         "wsc_legends_ford_gt40_mk1": {
+          "_layout": "MID_SIDE_RAD",
           "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.35,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_gt40_mk2": {
+          "_layout": "MID_SIDE_RAD",
+          "zones": {
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_gt40_mk4": {
+          "_layout": "MID_SIDE_RAD",
+          "zones": {
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":1.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
           }
         },
         "wsc_legends_ford_gt_x1": {
+          "_layout": "MID_SIDE_RAD",
           "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.35,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "wsc_legends_ford_gt40_mk2": {
+
+        "wsc_legends_ferrari_250lm": {
+          "_layout": "MID_FRONT_RAD",
           "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.35,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "wsc_legends_ford_gt40_mk4": {
+        "wsc_legends_275p2": {
+          "_layout": "MID_SIDE_RAD",
           "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.35,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_G": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_330p2": {
+          "_layout": "MID_SIDE_RAD",
+          "zones": {
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_330p3": {
+          "_layout": "MID_SIDE_RAD",
+          "zones": {
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_330p3_spyder": {
+          "_layout": "MID_SIDE_RAD",
+          "zones": {
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_330p4": {
+          "_layout": "MID_SIDE_RAD",
+          "zones": {
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_330p4_spyder": {
+          "_layout": "MID_SIDE_RAD",
+          "zones": {
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_365p2_spyder": {
+          "_layout": "MID_SIDE_RAD",
+          "zones": {
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_365p2": {
+          "_layout": "MID_SIDE_RAD",
+          "zones": {
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_365p2_drogo": {
+          "_layout": "MID_SIDE_RAD",
+          "zones": {
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_dino_206s": {
+          "_layout": "MID_SIDE_RAD",
+          "zones": {
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":1.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_dino_206s_berlinetta": {
+          "_layout": "MID_SIDE_RAD",
+          "zones": {
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":1.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+
+        "wsc_legends_alfa_romeo_tipo_33": {
+          "_layout": "MID_SIDE_RAD",
+          "zones": {
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_alpine_a210_1500": {
+          "_layout": "REAR_ENGINE",
+          "zones": {
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "ARRIERE":   { "refroidissement":1.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":1.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_alpine_a211": {
+          "_layout": "REAR_ENGINE",
+          "zones": {
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "ARRIERE":   { "refroidissement":1.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":1.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_brabham_bt8": {
+          "_layout": "MID_FRONT_RAD",
+          "zones": {
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_chaparral_2d_66": {
+          "_layout": "MID_SIDE_RAD",
+          "zones": {
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":1.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_chaparral_2d_67": {
+          "_layout": "MID_SIDE_RAD",
+          "zones": {
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":1.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_chaparral_2f": {
+          "_layout": "MID_LARGE",
+          "zones": {
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":1.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_chevron_b8_fva": {
+          "_layout": "MID_FRONT_RAD",
+          "zones": {
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "ARRIERE":   { "refroidissement":1.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":1.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_chevron_gt": {
+          "_layout": "MID_SIDE_RAD",
+          "zones": {
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "ARRIERE":   { "refroidissement":1.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":1.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_corvette_gs": {
+          "_layout": "FRONT_ENGINE",
+          "zones": {
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":0.35,"chassis":0.0 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_corvette_gs_roadster": {
+          "_layout": "FRONT_ENGINE",
+          "zones": {
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":0.35,"chassis":0.0 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
         "wsc_legends_iso_grifo_a3c": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 0.35,
-              "chassis": 0.0
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":0.35,"chassis":0.0 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.35,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.35,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
         "wsc_legends_jaguar_xj13": {
+          "_layout": "MID_SIDE_RAD",
           "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.35,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_G": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
           }
         },
         "wsc_legends_lola_t70_mk3gt": {
+          "_layout": "MID_SIDE_RAD",
           "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.35,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_G": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "wsc_legends_lotus_47_gt": {
+        "wsc_legends_lotus_47": {
+          "_layout": "MID_FRONT_RAD",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 1.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":0.35,"direction":1.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
           }
         },
         "wsc_legends_maserati_tipo_151-3": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.35,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.35,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         },
         "wsc_legends_matra_m630_brm": {
+          "_layout": "MID_SIDE_RAD",
           "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.35,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
           }
         },
         "wsc_legends_nissan_r380": {
+          "_layout": "MID_SIDE_RAD",
           "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.35,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_G": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.35,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":1.0,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "wsc_legends_porsche_904_8": {
+        "wsc_legends_porsche_904-8": {
+          "_layout": "REAR_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 1.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":1.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
           }
         },
-        "wsc_legends_porsche_906_carrera": {
+        "wsc_legends_porsche_906": {
+          "_layout": "REAR_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 1.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":1.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_porsche_906_e66": {
+          "_layout": "REAR_ENGINE",
+          "zones": {
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":1.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
           }
         },
         "wsc_legends_porsche_906_lh": {
+          "_layout": "REAR_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 1.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":1.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
           }
         },
         "wsc_legends_porsche_910": {
+          "_layout": "REAR_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 0.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 1.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 1.0,
-              "direction": 0.35,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":1.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_porsche_910-8": {
+          "_layout": "REAR_ENGINE",
+          "zones": {
+            "AVANT":     { "refroidissement":0.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":1.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_G": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":1.0,"direction":0.35,"transmission":1.0,"suspension":1.0,"chassis":1.0 }
           }
         },
         "wsc_legends_shelby_daytona": {
+          "_layout": "FRONT_ENGINE",
           "zones": {
-            "AVANT": {
-              "refroidissement": 1.0,
-              "direction": 1.0,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "ARRIERE": {
-              "refroidissement": 0.0,
-              "direction": 0.0,
-              "transmission": 1.0,
-              "suspension": 1.0,
-              "chassis": 0.35
-            },
-            "LATERAL_G": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "LATERAL_D": {
-              "refroidissement": 0.0,
-              "direction": 0.35,
-              "transmission": 0.0,
-              "suspension": 1.0,
-              "chassis": 1.0
-            },
-            "AERIEN": {
-              "refroidissement": 0.35,
-              "direction": 0.35,
-              "transmission": 0.35,
-              "suspension": 1.0,
-              "chassis": 1.0
-            }
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
+          }
+        },
+        "wsc_legends_shelby_cobra_427sc": {
+          "_layout": "FRONT_ENGINE",
+          "zones": {
+            "AVANT":     { "refroidissement":1.0,"direction":1.0,"transmission":0.0,"suspension":1.0,"chassis":0.35 },
+            "ARRIERE":   { "refroidissement":0.0,"direction":0.0,"transmission":1.0,"suspension":1.0,"chassis":0.35 },
+            "LATERAL_G": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "LATERAL_D": { "refroidissement":0.0,"direction":0.35,"transmission":0.0,"suspension":1.0,"chassis":1.0 },
+            "AERIEN":    { "refroidissement":0.35,"direction":0.35,"transmission":0.35,"suspension":1.0,"chassis":1.0 }
           }
         }
       }
     }
   },
-  "speed_reference_car_kmh": 100.0,
-  "speed_reference_env_kmh": 150.0,
+
   "score_thresholds": {
-    "rien": [
-      0,
-      5
-    ],
-    "leger": [
-      5,
-      20
-    ],
-    "modere": [
-      20,
-      45
-    ],
-    "severe": [
-      45,
-      70
-    ],
-    "critique": [
-      70,
-      100
-    ]
+    "rien":     [0,  15],
+    "leger":    [15, 30],
+    "modere":   [30, 55],
+    "severe":   [55, 75],
+    "critique": [75, 100]
   },
   "artefact_filter": {
     "car_max_speed_kmh": 150,
@@ -2249,10 +755,7 @@
     "description": "CAR impact > 150 km/h with |rel_Y| < 0.3 = teleport/spawn artefact, ignored"
   },
   "_calibration_notes": {
-    "car_ref_100": "A 100 km/h CAR impact (speed_eff=70) is catastrophic for a 60s GT car",
-    "env_ref_150": "On fast circuits (Spa 66), 150 km/h wall impacts are the true disasters",
-    "susp_max_8": "Suspension is robust (double wishbones steel) \u2014 max 8 kg reflects realistic handling penalty",
-    "dir_max_20": "Direction reduced from 25 to 20 for balance \u2014 still dominant on frontal impacts",
-    "calibrated_on": "Rusty Valley 2026-05-29 (231 impacts) + Spa 66 2026-04-18 (347 impacts)"
+    "version": "2.0 — noms corrigés, 8hlmc supprimés, 20+ véhicules ajoutés",
+    "naming": "Noms = dossiers réels AC1 sur disque"
   }
 }

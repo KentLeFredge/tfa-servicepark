@@ -248,15 +248,38 @@ body { font-family:'Barlow Condensed',sans-serif; background:#3a4048; display:fl
 #music-btn:hover { border-color:var(--cyan); color:var(--cyan); }
 #music-btn.muted { border-color:var(--border); color:var(--border-l); }
 
-/* ── EXIT WIPE ── */
-#exit-wipe {
-  position:fixed; inset:0; z-index:500;
-  background:#000;
-  transform:translateY(-100%);
-  transition:transform 0.8s cubic-bezier(0.4,0,0.2,1);
-  pointer-events:none;
+/* ── EXIT WIPE (double rideau haut + bas) ── */
+#exit-wipe-top, #exit-wipe-bot {
+  position:fixed; left:0; right:0; height:50%; z-index:500;
+  background:#000; pointer-events:none;
+  transition:transform 0.7s cubic-bezier(0.4,0,0.2,1);
 }
-#exit-wipe.active { transform:translateY(0); pointer-events:all; }
+#exit-wipe-top { top:0;  transform:translateY(-100%); }
+#exit-wipe-bot { bottom:0; transform:translateY(100%); }
+#exit-wipe-top.active { transform:translateY(0); pointer-events:all; }
+#exit-wipe-bot.active { transform:translateY(0); pointer-events:all; }
+
+/* ── EXIT CONFIRM MODAL ── */
+#exit-confirm {
+  display:none; position:fixed; inset:0; z-index:400;
+  background:rgba(0,0,0,0.75);
+  align-items:center; justify-content:center;
+}
+#exit-confirm.open { display:flex; }
+#exit-confirm .box {
+  background:var(--bg-dark); border:2px solid var(--border-l);
+  padding:32px 40px; text-align:center; max-width:380px;
+}
+#exit-confirm .box h3 {
+  font-size:1.1rem; font-weight:800; color:var(--white);
+  letter-spacing:0.08em; margin-bottom:8px;
+}
+#exit-confirm .box p { font-size:13px; color:var(--text-dim); margin-bottom:24px; font-family:'Barlow',sans-serif; }
+#exit-confirm .actions { display:flex; gap:12px; justify-content:center; }
+#exit-confirm .btn-oui  { font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:800; letter-spacing:0.1em; text-transform:uppercase; padding:10px 32px; border:2px solid var(--red); color:var(--red); background:none; cursor:pointer; transition:all 0.15s; }
+#exit-confirm .btn-non  { font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:800; letter-spacing:0.1em; text-transform:uppercase; padding:10px 32px; border:2px solid var(--border-l); color:var(--text-dim); background:none; cursor:pointer; transition:all 0.15s; }
+#exit-confirm .btn-oui:hover { background:var(--red); color:var(--white); }
+#exit-confirm .btn-non:hover { border-color:var(--text); color:var(--text); }
 
 /* ── ADMIN PANEL ── */
 .admin-toolbar { display:flex; align-items:center; gap:10px; padding:12px 16px; background:var(--bg-panel); border-bottom:2px solid var(--border); flex-wrap:wrap; }
@@ -796,8 +819,21 @@ const CONFIG = {
 <!-- ── BOUTON MUSIQUE ── -->
 <button id="music-btn" title="Musique on/off">🔊</button>
 
-<!-- ── EXIT WIPE ── -->
-<div id="exit-wipe"></div>
+<!-- ── EXIT WIPE (double rideau) ── -->
+<div id="exit-wipe-top"></div>
+<div id="exit-wipe-bot"></div>
+
+<!-- ── EXIT CONFIRM ── -->
+<div id="exit-confirm">
+  <div class="box">
+    <h3>QUITTER LE SERVICE PARK</h3>
+    <p>Êtes-vous sûr de vouloir fermer ?<br>Assurez-vous d'avoir validé vos réparations.</p>
+    <div class="actions">
+      <button class="btn-non" id="exit-non">Non</button>
+      <button class="btn-oui" id="exit-oui">Oui</button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ════════════════════════════════════
@@ -2230,26 +2266,31 @@ initUI = function() {
 const _music    = document.getElementById('bg-music');
 const _musicBtn = document.getElementById('music-btn');
 let   _musicMuted = false;
-let   _musicStarted = false;
 
 _music.volume = 0.35;
 
 function startMusic() {
-  if (_musicStarted) return;
-  _musicStarted = true;
-  _music.play().catch(function() {});
+  _music.play().catch(function() {
+    // Autoplay bloqué → attendre premier clic
+    document.addEventListener('click', function _retry() {
+      _music.play().catch(function(){});
+      document.removeEventListener('click', _retry);
+    });
+  });
 }
 
-_musicBtn.addEventListener('click', function() {
+// Démarrer immédiatement
+startMusic();
+
+_musicBtn.addEventListener('click', function(e) {
+  e.stopPropagation();
   _musicMuted = !_musicMuted;
   _music.muted = _musicMuted;
   _musicBtn.textContent = _musicMuted ? '🔇' : '🔊';
   _musicBtn.classList.toggle('muted', _musicMuted);
-  if (!_musicMuted) startMusic();
+  if (!_musicMuted && _music.paused) _music.play().catch(function(){});
+  playClick('btn');
 });
-
-// Démarrer au premier clic utilisateur (politique autoplay navigateurs)
-document.addEventListener('click', startMusic, { once: true });
 
 /* ════════════════════════════════════
    BRUITAGES CLICS (Web Audio API)
@@ -2298,29 +2339,44 @@ document.querySelectorAll('.btn:not(#panel-admin .btn):not(.admin-toolbar .btn)'
 });
 
 /* ════════════════════════════════════
-   EXIT — fondu noir + glissement
+   EXIT — confirmation + double rideau + fondu musique
    ════════════════════════════════════ */
-const _exitWipe = document.getElementById('exit-wipe');
+const _exitTop  = document.getElementById('exit-wipe-top');
+const _exitBot  = document.getElementById('exit-wipe-bot');
+const _exitDlg  = document.getElementById('exit-confirm');
 
-// Override du bouton Fermer dans l'onglet Quitter
+function doExit() {
+  // 1. Clic sonore
+  playClick('tab');
+  // 2. Fermer la modale
+  _exitDlg.classList.remove('open');
+  // 3. Fondu musique
+  var vol = _music.volume;
+  var fadeOut = setInterval(function() {
+    if (vol > 0.02) { vol -= 0.025; _music.volume = Math.max(vol, 0); }
+    else { _music.pause(); clearInterval(fadeOut); }
+  }, 30);
+  // 4. Double rideau noir haut + bas → se rejoignent au milieu
+  requestAnimationFrame(function() {
+    _exitTop.classList.add('active');
+    _exitBot.classList.add('active');
+  });
+  // 5. Fermer la fenêtre
+  setTimeout(function() { window.close(); }, 800);
+}
+
+// Bouton Fermer → ouvre la confirmation
 document.getElementById('btn-exit').addEventListener('click', function(e) {
-  e.stopImmediatePropagation(); // remplace le window.close() existant
+  e.stopImmediatePropagation();
   e.preventDefault();
-  // Arrêter la musique en fondu
-  if (!_music.paused) {
-    var fadeOut = setInterval(function() {
-      if (_music.volume > 0.03) {
-        _music.volume -= 0.03;
-      } else {
-        _music.pause();
-        clearInterval(fadeOut);
-      }
-    }, 40);
-  }
-  // Wipe noir de haut en bas
-  _exitWipe.classList.add('active');
-  setTimeout(function() { window.close(); }, 900);
-}, true); // capture phase pour override
+  _exitDlg.classList.add('open');
+}, true);
+
+document.getElementById('exit-oui').addEventListener('click', doExit);
+document.getElementById('exit-non').addEventListener('click', function() {
+  _exitDlg.classList.remove('open');
+  playClick('btn');
+});
 
 </script>
 </body>

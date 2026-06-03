@@ -1528,15 +1528,20 @@ function applyLocal(comp, doRepair) {
 }
 
 function renderTimer() {
-  const remaining=Math.max(0,STATE.repair_budget_min-STATE.repair_used_min);
-  const pct=(remaining/STATE.repair_budget_min)*100;
-  const el=document.getElementById('timer-val');
-  el.innerHTML=`${remaining}<span class="timer-unit">${t('timer_unit')}</span>`;
-  const isCrit=remaining===0, isWarn=!isCrit&&pct<=20;
-  el.className='timer-val'+(isCrit?' crit':isWarn?' warn':'');
-  const fill=document.getElementById('timer-fill');
-  fill.style.width=pct+'%';
-  fill.style.background=isCrit?'var(--red)':isWarn?'var(--yellow)':'var(--cyan)';
+  // Calcule le temps utilisé depuis les composants réparés
+  const used   = STATE.components.reduce((acc, c) => acc + (c.repaired ? (c.repair_min || 0) : 0), 0);
+  const budget = STATE.repair_budget_min || 60;
+  const pct    = Math.min(100, Math.round(used / budget * 100));
+  STATE.repair_used_min = used; // sync
+  const el = document.getElementById('timer-val');
+  el.innerHTML = `${used}<span class="timer-unit">${t('timer_unit')}</span>`;
+  const isOver = used > budget, isWarn = !isOver && pct >= 75;
+  el.className = 'timer-val' + (isOver ? ' crit' : isWarn ? ' warn' : '');
+  const fill = document.getElementById('timer-fill');
+  fill.style.width = pct + '%';
+  fill.style.background = isOver ? 'var(--red)' : isWarn ? 'var(--yellow)' : 'var(--cyan)';
+  document.getElementById('timer-sub').textContent =
+    `${used} / ${budget} ${LANG === 'en' ? 'min allocated' : 'min allouées'}`;
 }
 
 function updateHandicapBadges() {
@@ -1549,7 +1554,7 @@ function updateHandicapBadges() {
 }
 
 function resetAll() {
-  if (STATE.validated) return;
+  if (STATE.validated && !AUTH.isAdmin) return;
   STATE.components.forEach(c=>{c.repaired=false;});
   STATE.repair_used_min=0;
   let bal=0,res=0;
@@ -1672,25 +1677,89 @@ function adminRender(data) {
     `;
     tbody.appendChild(tr);
 
-    // Détail composants
-    const comps = d.components || [];
-    const chipsHtml = comps.length === 0
-      ? '<span style="color:var(--text-dim);font-size:11px;font-style:italic">Aucun composant pour cette étape</span>'
-      : comps.map(c => {
-          const cls = c.repaired ? 'repaired' : c.severity === 'critique' || c.severity === 'severe' ? 'severe' : c.severity !== 'intact' && c.severity !== 'none' ? 'damaged' : '';
-          const icon = c.repaired ? '✓' : (cls ? '⚠' : '○');
-          const pen = [];
-          if (!c.repaired && c.ballast_kg > 0) pen.push(`+${c.ballast_kg}kg`);
-          if (!c.repaired && c.restrictor  > 0) pen.push(`R:${c.restrictor}`);
-          return `<span class="admin-chip ${cls}">${icon} ${c.component_id}${pen.length ? ' · '+pen.join(' ') : ''}</span>`;
-        }).join('');
-
+    // Détail composants avec override admin
     const detailTr = document.createElement('tr');
     detailTr.className = 'admin-detail';
     detailTr.id = 'admin-detail-' + d.driver_guid;
-    detailTr.innerHTML = `<td colspan="9"><div class="admin-chips" style="padding:8px 10px">${chipsHtml}</div></td>`;
+    detailTr.innerHTML = `<td colspan="9">
+      <div style="padding:10px 14px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+          <span style="font-size:10px;color:var(--text-dim);letter-spacing:0.08em;text-transform:uppercase;">Override :</span>
+          <button class="btn" style="padding:3px 10px;font-size:10px;border-color:var(--green);color:var(--green)"
+            onclick="adminRepairAll('${d.driver_guid}', true)">✓ Tout réparer</button>
+          <button class="btn" style="padding:3px 10px;font-size:10px;border-color:var(--red);color:var(--red)"
+            onclick="adminRepairAll('${d.driver_guid}', false)">✗ Tout annuler</button>
+          <button class="btn" style="padding:3px 10px;font-size:10px;border-color:${d.validated?'var(--yellow)':'var(--green)'};color:${d.validated?'var(--yellow)':'var(--green)'}"
+            onclick="adminToggleValidated('${d.driver_guid}', ${d.validated})">
+            ${d.validated ? '🔓 Dé-valider' : '🔒 Valider'}
+          </button>
+        </div>
+        <div class="admin-chips" id="admin-chips-${d.driver_guid}">
+          ${(d.components||[]).length === 0
+            ? '<span style="color:var(--text-dim);font-size:11px;font-style:italic">Aucun composant enregistré</span>'
+            : (d.components||[]).map(c => {
+                const cls = c.repaired ? 'repaired' : (c.score > 45 ? 'severe' : c.score > 15 ? 'damaged' : '');
+                const icon = c.repaired ? '✓' : (c.score > 15 ? '⚠' : '○');
+                return `<span class="admin-chip ${cls}" style="cursor:pointer"
+                  onclick="adminToggleRepair('${d.driver_guid}','${c.component_id}',${c.repaired})"
+                  title="Cliquer pour ${c.repaired?'annuler':'valider'} la réparation">
+                  ${icon} ${c.component_id} <small style="opacity:0.7">${Math.round(c.score||0)}</small>
+                </span>`;
+              }).join('')
+          }
+        </div>
+      </div>
+    </td>`;
     tbody.appendChild(detailTr);
   });
+}
+
+async function adminToggleRepair(guid, componentId, currentRepaired) {
+  try {
+    const data = await gasPost('admin_set_repair', {
+      driver_guid:  guid,
+      stage_id:     ADMIN_DATA ? ADMIN_DATA.stage_id : CONFIG.CURRENT_STAGE_ID,
+      component_id: componentId,
+      repaired:     !currentRepaired,
+    });
+    if (data.error) throw new Error(data.error);
+    showToast(`${componentId} → ${!currentRepaired ? 'réparé' : 'annulé'}`);
+    await adminRefresh();
+  } catch(e) { showToast('Erreur : ' + e.message); }
+}
+
+async function adminRepairAll(guid, repaired) {
+  const stageId = ADMIN_DATA ? ADMIN_DATA.stage_id : CONFIG.CURRENT_STAGE_ID;
+  // Récupère les composants du pilote puis les met tous au même état
+  try {
+    const res = await gasGet('admin_get_driver_repairs', { driver_guid: guid, stage_id: stageId });
+    if (res.error) throw new Error(res.error);
+    // Patch chaque composant
+    for (const comp of (res.components || [])) {
+      if (comp.repaired !== repaired) {
+        await gasPost('admin_set_repair', {
+          driver_guid: guid, stage_id: stageId,
+          component_id: comp.id, repaired: repaired,
+        });
+      }
+    }
+    showToast(repaired ? 'Toutes réparations validées' : 'Toutes réparations annulées');
+    await adminRefresh();
+  } catch(e) { showToast('Erreur : ' + e.message); }
+}
+
+async function adminToggleValidated(guid, currentValidated) {
+  const stageId = ADMIN_DATA ? ADMIN_DATA.stage_id : CONFIG.CURRENT_STAGE_ID;
+  const newVal  = !currentValidated;
+  if (newVal && !confirm(`Valider les réparations de ce pilote ?\n(Action normalement irréversible)`)) return;
+  try {
+    const data = await gasPost('admin_set_validated', {
+      driver_guid: guid, stage_id: stageId, validated: newVal,
+    });
+    if (data.error) throw new Error(data.error);
+    showToast(newVal ? 'Pilote validé' : 'Validation annulée');
+    await adminRefresh();
+  } catch(e) { showToast('Erreur : ' + e.message); }
 }
 
 function adminToggleDetail(guid) {

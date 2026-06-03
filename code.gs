@@ -25,7 +25,7 @@ var CONFIG_DEFAULTS = {
   ARTEFACT_CAR_MAX_SPEED:   150,
   ARTEFACT_MAX_REL_Y:       0.3,
   // Seuils score → sévérité (pour affichage)
-  SCORE_RIEN_MAX:             5,
+  SCORE_RIEN_MAX:            15,
   SCORE_LEGER_MAX:           20,
   SCORE_MODERE_MAX:          45,
   SCORE_SEVERE_MAX:          70,
@@ -275,6 +275,11 @@ function doGet(e) {
   if (action === 'sync_acsm_championship') return withAdminToken(e, function() {
     return jsonResponse(syncAcsmChampionship());
   });
+  if (action === 'admin_get_driver_repairs') return withAdminToken(e, function() {
+    var guid    = e.parameter.driver_guid || '';
+    var stageId = e.parameter.stage_id   || PROPS.getProperty('CURRENT_STAGE_ID');
+    return jsonResponse(adminGetDriverRepairs(guid, stageId));
+  });
   return jsonResponse({ error: 'unknown_action' });
 }
 
@@ -312,6 +317,18 @@ function doPost(e) {
   });
   if (action === 'save_config')           return withAdminToken(e, function() {
     return jsonResponse(saveConfigFromAdmin(body.config || {}));
+  });
+  if (action === 'admin_set_repair')      return withAdminToken(e, function() {
+    return jsonResponse(adminSetRepair(
+      body.driver_guid, body.stage_id || PROPS.getProperty('CURRENT_STAGE_ID'),
+      body.component_id, body.repaired
+    ));
+  });
+  if (action === 'admin_set_validated')   return withAdminToken(e, function() {
+    return jsonResponse(adminSetValidated(
+      body.driver_guid, body.stage_id || PROPS.getProperty('CURRENT_STAGE_ID'),
+      body.validated
+    ));
   });
   return jsonResponse({ error: 'unknown_action' });
 }
@@ -1238,6 +1255,133 @@ function saveConfigFromAdmin(configObj) {
     else sheet.appendRow([key, val, CONFIG_DESCRIPTIONS[key] || '']);
   });
   return { ok: true };
+}
+
+// ──────────────────────────────────────────────────────────────
+// ADMIN — OVERRIDE RÉPARATIONS PAR PILOTE
+// ──────────────────────────────────────────────────────────────
+
+function adminGetDriverRepairs(guid, stageId) {
+  var cfg      = readConfigSheet();
+  var dcSheet  = getSheet('damage_components');
+  if (!dcSheet) return { ok: true, components: [] };
+  var dcData   = dcSheet.getDataRange().getValues();
+  var dcHeaders= dcData[0];
+  var components = [];
+  for (var i = 1; i < dcData.length; i++) {
+    var row = dcData[i];
+    if (String(row[dcHeaders.indexOf('driver_guid')]) !== String(guid)) continue;
+    if (String(row[dcHeaders.indexOf('stage_id')])    !== String(stageId)) continue;
+    var dc = (function(r) { return function(col) { var idx = dcHeaders.indexOf(col); return idx >= 0 ? r[idx] : null; }; })(row);
+    var score   = Number(dc('score')) || 0;
+    var repaired= dc('repaired') === true || dc('repaired') === 'TRUE';
+    components.push({
+      id:       String(dc('component_id')),
+      score:    score,
+      severity: scoreToSeverity(score, cfg),
+      repaired: repaired,
+      row:      i + 1,
+    });
+  }
+  return { ok: true, components: components };
+}
+
+function adminSetRepair(guid, stageId, componentId, repaired) {
+  var dcSheet  = getSheet('damage_components');
+  if (!dcSheet) throw new Error('Feuille damage_components introuvable');
+  var dcData   = dcSheet.getDataRange().getValues();
+  var dcHeaders= dcData[0];
+  var guidIdx  = dcHeaders.indexOf('driver_guid');
+  var stageIdx = dcHeaders.indexOf('stage_id');
+  var compIdx  = dcHeaders.indexOf('component_id');
+  var repIdx   = dcHeaders.indexOf('repaired');
+  var found    = false;
+  for (var i = 1; i < dcData.length; i++) {
+    if (String(dcData[i][guidIdx])  === String(guid) &&
+        String(dcData[i][stageIdx]) === String(stageId) &&
+        String(dcData[i][compIdx])  === String(componentId)) {
+      dcSheet.getRange(i + 1, repIdx + 1).setValue(repaired === true);
+      found = true; break;
+    }
+  }
+  if (!found) throw new Error('Composant introuvable : ' + componentId);
+  // Recalculer les totaux driver_state
+  _recalcDriverTotals(guid, stageId);
+  return { ok: true };
+}
+
+function adminSetValidated(guid, stageId, validated) {
+  var dsSheet  = getSheet('driver_state');
+  var dsData   = dsSheet.getDataRange().getValues();
+  var dsHeaders= dsData[0];
+  var guidIdx  = dsHeaders.indexOf('driver_guid');
+  var valIdx   = dsHeaders.indexOf('validated');
+  for (var i = 1; i < dsData.length; i++) {
+    if (String(dsData[i][guidIdx]) === String(guid)) {
+      dsSheet.getRange(i + 1, valIdx + 1).setValue(validated === true);
+      dsSheet.getRange(i + 1, dsHeaders.indexOf('last_updated') + 1).setValue(new Date().toISOString());
+      return { ok: true };
+    }
+  }
+  throw new Error('Pilote introuvable');
+}
+
+// Recalcule ballast/restrictor/repair_used dans driver_state depuis damage_components
+function _recalcDriverTotals(guid, stageId) {
+  var cfg      = readConfigSheet();
+  var dcSheet  = getSheet('damage_components');
+  var dcData   = dcSheet.getDataRange().getValues();
+  var dcHeaders= dcData[0];
+  var penMax   = {
+    refroidissement: Number(cfg.PENALTY_REFROIDISSEMENT_MAX) || 12,
+    direction:       Number(cfg.PENALTY_DIRECTION_MAX)       || 20,
+    transmission:    Number(cfg.PENALTY_TRANSMISSION_MAX)    || 8,
+    suspension:      Number(cfg.PENALTY_SUSPENSION_MAX)      || 8,
+    chassis:         Number(cfg.PENALTY_CHASSIS_MAX)         || 20,
+  };
+  var repairMax = {
+    refroidissement: Number(cfg.REPAIR_COST_REFROIDISSEMENT) || 40,
+    direction:       Number(cfg.REPAIR_COST_DIRECTION)       || 35,
+    transmission:    Number(cfg.REPAIR_COST_TRANSMISSION)    || 30,
+    suspension:      Number(cfg.REPAIR_COST_SUSPENSION)      || 20,
+    chassis:         Number(cfg.REPAIR_COST_CHASSIS)         || 50,
+  };
+  var totalBallast = 0, restrValues = [], totalRepair = 0;
+  for (var i = 1; i < dcData.length; i++) {
+    var row = dcData[i];
+    if (String(row[dcHeaders.indexOf('driver_guid')]) !== String(guid)) continue;
+    if (String(row[dcHeaders.indexOf('stage_id')])    !== String(stageId)) continue;
+    var compId  = String(row[dcHeaders.indexOf('component_id')]);
+    var score   = Number(row[dcHeaders.indexOf('score')]) || 0;
+    var repaired= row[dcHeaders.indexOf('repaired')] === true || row[dcHeaders.indexOf('repaired')] === 'TRUE';
+    var repPct  = repaired ? 100 : 0;
+    var penType = PENALTY_TYPE[compId] || 'ballast_kg';
+    var penVal  = scoreToPenaltyValue(score, repPct, penMax[compId] || 0, cfg);
+    var repCost = scoreToRepairCost(score, repPct, repairMax[compId] || 0, cfg);
+    if (!repaired) {
+      if (penType === 'ballast_kg') totalBallast += penVal;
+      else restrValues.push(penVal);
+      totalRepair += repCost;
+    }
+  }
+  restrValues.sort(function(a,b) { return b-a; });
+  var w2 = Number(cfg.RESTRICTOR_SECOND_WEIGHT) || 0.3;
+  var totalRestr = restrValues.length === 0 ? 0
+                 : restrValues.length === 1 ? restrValues[0]
+                 : restrValues[0] + restrValues[1] * w2;
+  var dsSheet  = getSheet('driver_state');
+  var dsData   = dsSheet.getDataRange().getValues();
+  var dsHeaders= dsData[0];
+  for (var m = 1; m < dsData.length; m++) {
+    if (String(dsData[m][dsHeaders.indexOf('driver_guid')]) === String(guid)) {
+      var r = m + 1;
+      dsSheet.getRange(r, dsHeaders.indexOf('ballast_kg')     + 1).setValue(Math.min(totalBallast, 40));
+      dsSheet.getRange(r, dsHeaders.indexOf('restrictor')     + 1).setValue(Math.min(totalRestr, 12));
+      dsSheet.getRange(r, dsHeaders.indexOf('repair_used_min')+ 1).setValue(Math.ceil(totalRepair));
+      dsSheet.getRange(r, dsHeaders.indexOf('last_updated')   + 1).setValue(new Date().toISOString());
+      break;
+    }
+  }
 }
 
 // ──────────────────────────────────────────────────────────────

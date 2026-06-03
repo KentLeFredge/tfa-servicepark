@@ -269,6 +269,9 @@ function doGet(e) {
   if (action === 'get_config')            return withAdminToken(e, function() {
     return jsonResponse(getConfigForAdmin());
   });
+  if (action === 'get_admins')            return withAdminToken(e, function() {
+    return jsonResponse(getAdminsList());
+  });
   if (action === 'fetch_acsm_results')    return withAdminToken(e, function() {
     return jsonResponse(fetchAcsmResults());
   });
@@ -319,6 +322,9 @@ function doPost(e) {
   if (action === 'save_config')           return withAdminToken(e, function() {
     return jsonResponse(saveConfigFromAdmin(body.config || {}));
   });
+  if (action === 'save_admins')           return withAdminToken(e, function() {
+    return jsonResponse(saveAdminsList(body.admins || []));
+  });
   if (action === 'admin_set_repair')      return withAdminToken(e, function() {
     return jsonResponse(adminSetRepair(
       body.driver_guid, body.stage_id || PROPS.getProperty('CURRENT_STAGE_ID'),
@@ -353,8 +359,45 @@ function withAdminToken(e, fn) {
 }
 
 function isAdminSteamId(steamId) {
+  // 1. Lire depuis la feuille "admins" (source principale)
+  var sheet = getSheet('admins');
+  if (sheet) {
+    var data    = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var idIdx   = headers.indexOf('steam_id');
+    var actIdx  = headers.indexOf('active');
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][idIdx] || '').trim() === String(steamId)) {
+        // active = TRUE ou vide/absent → autorisé
+        var active = data[i][actIdx];
+        return active !== false && active !== 'FALSE' && active !== 0;
+      }
+    }
+    return false;
+  }
+  // 2. Fallback Script Properties (séparateurs , ou ;)
   var admins = PROPS.getProperty('ADMIN_STEAM_IDS') || '';
-  return admins.split(',').map(function(s) { return s.trim(); }).indexOf(String(steamId)) !== -1;
+  return admins.split(/[,;]/).map(function(s) { return s.trim(); }).indexOf(String(steamId)) !== -1;
+}
+
+function ensureAdminsSheet() {
+  var ss    = SpreadsheetApp.openById(PROPS.getProperty('SHEET_ID'));
+  var sheet = ss.getSheetByName('admins');
+  if (!sheet) {
+    sheet = ss.insertSheet('admins');
+    sheet.appendRow(['steam_id', 'driver_name', 'active']);
+    sheet.getRange(1, 1, 1, 3).setFontWeight('bold');
+    sheet.setColumnWidth(1, 180);
+    sheet.setColumnWidth(2, 160);
+    sheet.setColumnWidth(3, 70);
+    // Migration automatique depuis Script Properties
+    var existing = PROPS.getProperty('ADMIN_STEAM_IDS') || '';
+    existing.split(/[,;]/).forEach(function(id) {
+      id = id.trim();
+      if (id) sheet.appendRow([id, '', true]);
+    });
+  }
+  return sheet;
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -870,6 +913,7 @@ function importChampionship(data) {
     ['driver_guid','stage_id','component_id','score','severity','ballast_kg','restrictor','repair_min','repaired']);
 
   ensureConfigSheet();
+  ensureAdminsSheet();
   ensureDriverStateColumn('skin');
   ensureDriverStateColumn('team');
   var cfg             = readConfigSheet();
@@ -1393,6 +1437,35 @@ function exportEntryList() {
 // ──────────────────────────────────────────────────────────────
 // ADMIN — CONFIG
 // ──────────────────────────────────────────────────────────────
+
+function getAdminsList() {
+  ensureAdminsSheet();
+  var sheet = getSheet('admins');
+  var data  = sheet.getDataRange().getValues();
+  var rows  = [];
+  for (var i = 1; i < data.length; i++) {
+    if (!String(data[i][0] || '').trim()) continue;
+    rows.push({
+      steam_id:    String(data[i][0] || '').trim(),
+      driver_name: String(data[i][1] || ''),
+      active:      data[i][2] !== false && data[i][2] !== 'FALSE' && data[i][2] !== 0,
+    });
+  }
+  return { ok: true, admins: rows };
+}
+
+function saveAdminsList(admins) {
+  ensureAdminsSheet();
+  var sheet = getSheet('admins');
+  // Vider et réécrire (conserver en-tête)
+  var lastRow = sheet.getLastRow();
+  if (lastRow > 1) sheet.deleteRows(2, lastRow - 1);
+  admins.forEach(function(a) {
+    if (!a.steam_id) return;
+    sheet.appendRow([a.steam_id.trim(), a.driver_name || '', a.active !== false]);
+  });
+  return { ok: true };
+}
 
 function getConfigForAdmin() {
   ensureConfigSheet();

@@ -680,16 +680,37 @@ const CONFIG = {
     </div>
     <div id="admin-config-panel" style="display:none;padding:14px 16px;overflow-y:auto;flex:1;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-        <span style="font-size:11px;font-weight:700;color:var(--text-dim);letter-spacing:0.1em;text-transform:uppercase;">Configuration dégâts</span>
+        <span style="font-size:11px;font-weight:700;color:var(--text-dim);letter-spacing:0.1em;text-transform:uppercase;">Configuration</span>
         <div style="display:flex;gap:8px;">
           <button class="btn" onclick="adminShowDrivers()">← Pilotes</button>
-          <button class="btn primary" onclick="adminSaveConfig()">💾 Sauvegarder</button>
         </div>
       </div>
-      <table class="admin-table" id="admin-config-table">
-        <thead><tr><th>Paramètre</th><th style="width:90px">Valeur</th><th>Description</th></tr></thead>
-        <tbody id="admin-config-tbody"></tbody>
-      </table>
+
+      <!-- Admins -->
+      <div style="margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-size:10px;font-weight:700;color:var(--yellow);letter-spacing:0.1em;text-transform:uppercase;">Administrateurs</span>
+          <div style="display:flex;gap:6px;">
+            <button class="btn" style="padding:3px 10px;font-size:10px;border-color:var(--green);color:var(--green)" onclick="adminAddAdmin()">+ Ajouter</button>
+            <button class="btn primary" style="padding:3px 10px;font-size:10px;" onclick="adminSaveAdmins()">💾 Sauvegarder</button>
+          </div>
+        </div>
+        <div id="admin-admins-list" style="display:flex;flex-direction:column;gap:6px;">
+          <span style="color:var(--text-dim);font-size:11px;font-style:italic">Chargement…</span>
+        </div>
+      </div>
+
+      <!-- Config dégâts -->
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-size:10px;font-weight:700;color:var(--text-dim);letter-spacing:0.1em;text-transform:uppercase;">Paramètres dégâts</span>
+          <button class="btn primary" style="padding:3px 10px;font-size:10px;" onclick="adminSaveConfig()">💾 Sauvegarder</button>
+        </div>
+        <table class="admin-table" id="admin-config-table">
+          <thead><tr><th>Paramètre</th><th style="width:90px">Valeur</th><th>Description</th></tr></thead>
+          <tbody id="admin-config-tbody"></tbody>
+        </table>
+      </div>
     </div>
 
     <div id="admin-drivers-panel">
@@ -1890,11 +1911,59 @@ function adminShowDrivers() {
   document.getElementById('admin-drivers-panel').style.display = 'block';
 }
 
+let _adminsList = [];
+
+function adminRenderAdmins() {
+  const list = document.getElementById('admin-admins-list');
+  if (!_adminsList.length) {
+    list.innerHTML = '<span style="color:var(--text-dim);font-size:11px;font-style:italic">Aucun admin configuré</span>';
+    return;
+  }
+  list.innerHTML = _adminsList.map((a, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg-panel);border:1px solid var(--border);">
+      <input type="text" value="${a.steam_id}" data-idx="${i}" data-field="steam_id"
+        placeholder="Steam ID64"
+        style="background:var(--bg);border:1px solid var(--border-l);color:var(--cyan);font-family:monospace;font-size:12px;padding:3px 6px;width:180px;"
+        oninput="_adminsList[this.dataset.idx].steam_id=this.value" />
+      <input type="text" value="${a.driver_name||''}" data-idx="${i}" data-field="driver_name"
+        placeholder="Nom (optionnel)"
+        style="background:var(--bg);border:1px solid var(--border-l);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:13px;padding:3px 6px;flex:1;"
+        oninput="_adminsList[this.dataset.idx].driver_name=this.value" />
+      <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-dim);cursor:pointer;">
+        <input type="checkbox" ${a.active?'checked':''} onchange="_adminsList[${i}].active=this.checked" />
+        Actif
+      </label>
+      <button class="btn danger" style="padding:2px 8px;font-size:10px;" onclick="_adminsList.splice(${i},1);adminRenderAdmins()">✕</button>
+    </div>
+  `).join('');
+}
+
+function adminAddAdmin() {
+  _adminsList.push({ steam_id: '', driver_name: '', active: true });
+  adminRenderAdmins();
+}
+
+async function adminSaveAdmins() {
+  const valid = _adminsList.filter(a => a.steam_id.trim());
+  if (!valid.length) { showToast('Au moins un admin requis'); return; }
+  try {
+    const data = await gasPost('save_admins', { admins: valid });
+    if (data.error) throw new Error(data.error);
+    showToast('Admins sauvegardés ✓');
+    _adminsList = valid;
+    adminRenderAdmins();
+  } catch(e) { showToast('Erreur : ' + e.message); }
+}
+
 async function adminShowConfig() {
   document.getElementById('admin-drivers-panel').style.display = 'none';
   document.getElementById('admin-config-panel').style.display  = 'block';
   const tbody = document.getElementById('admin-config-tbody');
   tbody.innerHTML = '<tr><td colspan="3" style="color:var(--text-dim);font-style:italic;padding:12px">Chargement…</td></tr>';
+  // Charger les admins en parallèle
+  gasGet('get_admins').then(function(d) {
+    if (!d.error) { _adminsList = d.admins || []; adminRenderAdmins(); }
+  });
   try {
     const data = await gasGet('get_config');
     if (data.error) throw new Error(data.error);

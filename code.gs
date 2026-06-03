@@ -424,7 +424,10 @@ function handleSteamCallback(e) {
     + '?token='    + encodeURIComponent(token)
     + '&steam_id=' + encodeURIComponent(steamId)
     + '&is_admin=' + isAdmin;
-  return HtmlService.createHtmlOutput('<script>window.location.href=' + JSON.stringify(redirectUrl) + ';</script>');
+  return HtmlService.createHtmlOutput(
+    '<meta http-equiv="refresh" content="0;url=' + redirectUrl + '">' +
+    '<script>window.location.replace(' + JSON.stringify(redirectUrl) + ');</script>'
+  );
 }
 
 function verifySteamSignature(params) {

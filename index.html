@@ -667,6 +667,7 @@ const CONFIG = {
       <button class="btn" style="border-color:var(--green);color:var(--green);" onclick="adminOpenImport('session_json')">📥 Résultats</button>
       <span class="toolbar-sep">|</span>
       <button class="btn" style="border-color:var(--cyan);color:var(--cyan);" id="admin-btn-export" onclick="adminExport()">⬇ entry_list.ini</button>
+      <button class="btn" style="border-color:var(--border-l);color:var(--text-dim);" onclick="adminOpenImport('vehicle_profiles')">🚗 Profils</button>
       <span class="toolbar-sep">|</span>
       <input type="text" id="admin-inp-stage" placeholder="event_id" style="font-family:'Barlow Condensed',sans-serif;font-size:13px;padding:5px 8px;background:var(--bg-panel);border:1px solid var(--border-l);color:var(--text);width:160px;" />
       <button class="btn" onclick="adminSetStage()">Appliquer</button>
@@ -727,8 +728,8 @@ const CONFIG = {
     <div class="admin-dropzone-file" id="admin-dropzone-file"></div>
     <div class="admin-import-result" id="admin-import-result"></div>
     <div class="admin-modal-actions">
-      <button class="btn" onclick="document.getElementById('admin-import-modal').classList.remove('open')">Annuler</button>
-      <button class="btn primary" onclick="adminDoImport()">Importer</button>
+      <button class="btn" id="admin-import-cancel-btn" onclick="document.getElementById('admin-import-modal').classList.remove('open')">Annuler</button>
+      <button class="btn primary" id="admin-import-confirm-btn" onclick="adminDoImport()">Importer</button>
     </div>
   </div>
 </div>
@@ -1996,6 +1997,17 @@ async function adminDoImport() {
     }
     res.style.display = 'block';
     showToast('Import terminé');
+    // Transformer "Annuler" en "OK" et fermer automatiquement après 2s
+    const cancelBtn = document.getElementById('admin-import-cancel-btn');
+    cancelBtn.textContent = 'OK';
+    cancelBtn.style.borderColor = 'var(--green)';
+    cancelBtn.style.color = 'var(--green)';
+    setTimeout(function() {
+      document.getElementById('admin-import-modal').classList.remove('open');
+      cancelBtn.textContent = 'Annuler';
+      cancelBtn.style.borderColor = '';
+      cancelBtn.style.color = '';
+    }, 2000);
     await adminRefresh();
   } catch(e) { showToast('Erreur import : ' + e.message); }
   finally { btn.textContent = 'Importer'; btn.disabled = false; }

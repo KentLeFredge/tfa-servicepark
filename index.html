@@ -1701,16 +1701,32 @@ async function adminExport() {
   try {
     const data = await gasGet('export_entry_list');
     if (data.error) throw new Error(data.error);
-    const stageId  = data.Stage || CONFIG.CURRENT_STAGE_ID;
-    const filename = `entry_list_${stageId}_handicaps.json`;
-    const blob     = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+
+    // Génère le format entry_list.ini natif AC1
+    const cars = data.Cars || [];
+    const lines = [];
+    cars.forEach(function(car, i) {
+      lines.push(`[CAR_${i}]`);
+      lines.push(`MODEL=${car.Model || ''}`);
+      lines.push(`SKIN=${car.Skin || ''}`);
+      lines.push(`SPECTATOR_MODE=0`);
+      lines.push(`DRIVER_NAME=${(car.Driver && car.Driver.Name) || ''}`);
+      lines.push(`TEAM=${(car.Driver && car.Driver.Team) || ''}`);
+      lines.push(`GUID=${(car.Driver && car.Driver.Guid) || ''}`);
+      lines.push(`BALLAST=${car.BallastKG || 0}`);
+      lines.push(`RESTRICTOR=${car.Restrictor || 0}`);
+      lines.push('');
+    });
+
+    const ini      = lines.join('\n');
+    const blob     = new Blob([ini], { type: 'text/plain' });
     const url      = URL.createObjectURL(blob);
     const a        = document.createElement('a');
-    a.href = url; a.download = filename;
+    a.href = url; a.download = 'entry_list.ini';
     document.body.appendChild(a); a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showToast(`Export téléchargé : ${filename}`);
+    showToast(`entry_list.ini téléchargé (${cars.length} pilotes)`);
   } catch(e) { showToast('Erreur export : ' + e.message); }
   finally { btn.innerHTML = '⬇ Exporter entry list'; btn.disabled = false; }
 }

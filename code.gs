@@ -269,6 +269,9 @@ function doGet(e) {
   if (action === 'get_config')            return withAdminToken(e, function() {
     return jsonResponse(getConfigForAdmin());
   });
+  if (action === 'fetch_acsm_results')    return withAdminToken(e, function() {
+    return jsonResponse(fetchAcsmResults());
+  });
   return jsonResponse({ error: 'unknown_action' });
 }
 
@@ -296,6 +299,9 @@ function doPost(e) {
   });
   if (action === 'import_vehicle_profiles') return withAdminToken(e, function() {
     return jsonResponse(importVehicleProfiles(body));
+  });
+  if (action === 'sync_acsm_championship') return withAdminToken(e, function() {
+    return jsonResponse(syncAcsmChampionship());
   });
   if (action === 'reset_stage')           return withAdminToken(e, function() {
     return jsonResponse(resetStage(body.stage_id || PROPS.getProperty('CURRENT_STAGE_ID')));
@@ -1232,6 +1238,206 @@ function saveConfigFromAdmin(configObj) {
     else sheet.appendRow([key, val, CONFIG_DESCRIPTIONS[key] || '']);
   });
   return { ok: true };
+}
+
+// ──────────────────────────────────────────────────────────────
+// ACSM FETCH — Sync direct depuis le serveur
+// Script Properties requises :
+//   ACSM_URL              : ex. https://acsm.revivalseries.fr
+//   ACSM_CHAMPIONSHIP_ID  : UUID du championnat (ex. 7fd33cab-...)
+// ──────────────────────────────────────────────────────────────
+
+function getAcsmBase() {
+  var url = PROPS.getProperty('ACSM_URL') || '';
+  return url.replace(/\/$/, ''); // supprimer slash final
+}
+
+// Sync championnat complet depuis ACSM → remplace import_championship manuel
+function syncAcsmChampionship() {
+  var base   = getAcsmBase();
+  var champId= PROPS.getProperty('ACSM_CHAMPIONSHIP_ID') || '';
+
+  if (!base)   throw new Error('ACSM_URL non configuré dans Script Properties');
+  if (!champId)throw new Error('ACSM_CHAMPIONSHIP_ID non configuré dans Script Properties');
+
+  var url = base + '/api/championships/' + champId;
+  var response;
+  try {
+    response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+  } catch(e) {
+    throw new Error('Impossible de joindre ACSM : ' + e.message);
+  }
+
+  if (response.getResponseCode() !== 200) {
+    throw new Error('ACSM a répondu ' + response.getResponseCode() + ' — vérifier ACSM_URL et ACSM_CHAMPIONSHIP_ID');
+  }
+
+  var data;
+  try { data = JSON.parse(response.getContentText()); } catch(e) {
+    throw new Error('Réponse ACSM non parseable : ' + e.message);
+  }
+
+  // Même logique qu'importChampionship
+  var result = importChampionship(data);
+  result.source = 'acsm_fetch';
+  result.championship_name = data.Name || '';
+  return result;
+}
+
+// Fetch résultats de session depuis ACSM
+// ACSM expose /api/results → liste des fichiers JSON de résultats
+// On prend le plus récent pour l'étape courante
+function fetchAcsmResults() {
+  var base    = getAcsmBase();
+  var stageId = PROPS.getProperty('CURRENT_STAGE_ID') || '';
+
+  if (!base) throw new Error('ACSM_URL non configuré dans Script Properties');
+
+  // 1. Récupérer la liste des résultats
+  var listUrl  = base + '/api/results';
+  var listResp = UrlFetchApp.fetch(listUrl, { muteHttpExceptions: true });
+  if (listResp.getResponseCode() !== 200)
+    throw new Error('Impossible de lister les résultats ACSM (' + listResp.getResponseCode() + ')');
+
+  var resultsList;
+  try { resultsList = JSON.parse(listResp.getContentText()); } catch(e) {
+    throw new Error('Liste résultats non parseable');
+  }
+
+  // resultsList est un tableau de noms de fichiers ou d'objets
+  // Format ACSM : tableau de strings ou [{Name, Date}]
+  var files = [];
+  if (Array.isArray(resultsList)) {
+    resultsList.forEach(function(item) {
+      if (typeof item === 'string') files.push(item);
+      else if (item.Name)          files.push(item.Name);
+      else if (item.Filename)      files.push(item.Filename);
+    });
+  }
+
+  if (files.length === 0) throw new Error('Aucun résultat disponible sur ACSM');
+
+  // 2. Prendre le fichier le plus récent (dernier de la liste, généralement trié par date)
+  var latestFile = files[files.length - 1];
+
+  // 3. Télécharger ce résultat
+  var resultUrl  = base + '/results/download/' + latestFile;
+  var resultResp = UrlFetchApp.fetch(resultUrl, { muteHttpExceptions: true });
+  if (resultResp.getResponseCode() !== 200)
+    throw new Error('Impossible de télécharger le résultat : ' + latestFile);
+
+  var sessionData;
+  try { sessionData = JSON.parse(resultResp.getContentText()); } catch(e) {
+    throw new Error('Résultat non parseable');
+  }
+
+  // 4. Traiter comme un résultat de session JSON ACSM
+  var result = importSessionJson(sessionData, stageId);
+  result.source   = 'acsm_fetch';
+  result.filename = latestFile;
+  return result;
+}
+
+// Import d'un résultat de session JSON ACSM (format Results direct)
+// Différent de importChampionship : c'est un résultat isolé, pas un championnat complet
+function importSessionJson(sessionData, stageId) {
+  var cfg             = readConfigSheet();
+  var vehicleProfiles = loadVehicleProfiles();
+
+  var cars      = sessionData.Cars   || [];
+  var laps      = sessionData.Laps   || [];
+  var events    = sessionData.Events || [];
+
+  // Index guid → model/skin
+  var guidToInfo = {};
+  cars.forEach(function(car) {
+    if (car.Driver && car.Driver.Guid) {
+      guidToInfo[car.Driver.Guid] = { model: car.Model || '', skin: car.Skin || '',
+                                       name: car.Driver.Name || '' };
+    }
+  });
+
+  // Index carId → guid (pour les events)
+  var carIdToGuid = {};
+  cars.forEach(function(car) {
+    if (car.CarId !== undefined && car.Driver && car.Driver.Guid)
+      carIdToGuid[car.CarId] = car.Driver.Guid;
+  });
+
+  // Résultats (meilleur tour)
+  var srSheet = getOrCreateSheet('stage_results',
+    ['event_index','driver_guid','driver_name','car_model','skin','best_lap_ms','laps','position','class_id']);
+  var srData = srSheet.getDataRange().getValues();
+  var srH    = srData[0];
+  for (var si = srData.length - 1; si >= 1; si--) {
+    if (String(srData[si][srH.indexOf('event_index')]) === String(stageId)) srSheet.deleteRow(si + 1);
+  }
+
+  var bestLaps  = {}, lapCounts = {};
+  laps.forEach(function(lap) {
+    var guid = lap.DriverGuid;
+    if (!guid || lap.LapTime > 1800000) return;
+    if (!bestLaps[guid] || lap.LapTime < bestLaps[guid]) bestLaps[guid] = lap.LapTime;
+    lapCounts[guid] = (lapCounts[guid] || 0) + 1;
+  });
+
+  var sorted = Object.keys(bestLaps).sort(function(a,b) { return bestLaps[a] - bestLaps[b]; });
+  var srRows  = [];
+  sorted.forEach(function(guid, pos) {
+    var info = guidToInfo[guid] || {};
+    srRows.push([stageId, guid, info.name || '', info.model || '', info.skin || '',
+      bestLaps[guid], lapCounts[guid] || 0, pos + 1, '']);
+  });
+  if (srRows.length) srSheet.getRange(srSheet.getLastRow() + 1, 1, srRows.length, 9).setValues(srRows);
+
+  // Dégâts depuis events (avec RelPosition — format JSON complet)
+  var dcSheet = getOrCreateSheet('damage_components',
+    ['driver_guid','stage_id','component_id','score','severity','ballast_kg','restrictor','repair_min','repaired']);
+  var dcData = dcSheet.getDataRange().getValues();
+  var dcH    = dcData[0];
+  for (var di = dcData.length - 1; di >= 1; di--) {
+    if (String(dcData[di][dcH.indexOf('stage_id')]) === String(stageId)) dcSheet.deleteRow(di + 1);
+  }
+
+  // Grouper impacts par guid
+  var impactsByGuid = {};
+  events.forEach(function(ev) {
+    var guid = carIdToGuid[ev.CarId];
+    if (!guid) return;
+    if (!impactsByGuid[guid]) impactsByGuid[guid] = [];
+    var rel = ev.RelPosition || {};
+    impactsByGuid[guid].push({
+      speed: ev.ImpactSpeed || 0,
+      type:  (ev.Type || 'ENV').indexOf('ENV') !== -1 ? 'ENV' : 'CAR',
+      rx: Number(rel.X || 0), ry: Number(rel.Y || 0), rz: Number(rel.Z || 0),
+    });
+  });
+
+  var dcRows = [], totalDamage = 0;
+  Object.keys(impactsByGuid).forEach(function(guid) {
+    var info  = guidToInfo[guid] || {};
+    var zones = vehicleProfiles[info.model || ''] || null;
+    var scores= computeScoresFromImpacts(impactsByGuid[guid], zones, cfg);
+
+    COMPONENTS.forEach(function(compId) {
+      var score = scores[compId];
+      if (score < (Number(cfg.SCORE_RIEN_MAX) || 5)) return;
+      var sev     = scoreToSeverity(score, cfg);
+      var penType = PENALTY_TYPE[compId] || 'ballast_kg';
+      var penKey  = 'PENALTY_' + compId.toUpperCase() + '_MAX';
+      var repKey  = 'REPAIR_COST_' + compId.toUpperCase();
+      var penVal  = scoreToPenaltyValue(score, 0, Number(cfg[penKey]) || 0, cfg);
+      var repCost = scoreToRepairCost(score, 0, Number(cfg[repKey]) || 0, cfg);
+      dcRows.push([guid, stageId, compId, score, sev,
+        penType === 'ballast_kg' ? penVal : 0,
+        penType === 'restrictor' ? penVal : 0,
+        Math.ceil(repCost), false]);
+      totalDamage++;
+    });
+  });
+  if (dcRows.length) dcSheet.getRange(dcSheet.getLastRow() + 1, 1, dcRows.length, 9).setValues(dcRows);
+
+  return { ok: true, stage_id: stageId, results: srRows.length, damage_entries: totalDamage };
 }
 
 // ──────────────────────────────────────────────────────────────

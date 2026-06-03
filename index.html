@@ -663,6 +663,9 @@ const CONFIG = {
       <button class="btn primary" id="admin-btn-refresh" onclick="adminRefresh()">↻ Rafraîchir</button>
       <button class="btn" style="border-color:var(--green);color:var(--green);" id="admin-btn-import" onclick="adminOpenImport('session_csv')">📋 Résultats session</button>
       <button class="btn" style="border-color:var(--yellow);color:var(--yellow);" id="admin-btn-champ" onclick="adminOpenImport('championship')">🏆 Championnat</button>
+      <span class="toolbar-sep">|</span>
+      <button class="btn" style="border-color:#5bc0de;color:#5bc0de;" onclick="adminSyncChampionship()">🔄 Sync ACSM</button>
+      <button class="btn" style="border-color:#5bc0de;color:#5bc0de;" onclick="adminSyncResults()">⬇ Résultats ACSM</button>
       <button class="btn" style="border-color:var(--border-l);color:var(--text-dim);" onclick="adminOpenImport('entrylist')">👥 Entry list</button>
       <button class="btn" style="border-color:var(--cyan);color:var(--cyan);" onclick="adminOpenImport('vehicle_profiles')">🚗 Profils véhicules</button>
       <button class="btn" style="border-color:var(--cyan);color:var(--cyan);" id="admin-btn-export" onclick="adminExport()">⬇ Exporter entry list</button>
@@ -1733,6 +1736,29 @@ async function adminExport() {
 
 let _importParsed = null;
 let _importType   = 'entrylist'; // 'entrylist' | 'championship'
+
+async function adminSyncChampionship() {
+  if (!confirm('Synchroniser le championnat depuis ACSM ?\n\nCeci remplace les données championship_events et stage_results.')) return;
+  showToast('Connexion à ACSM…');
+  try {
+    const data = await gasGet('sync_acsm_championship');
+    if (data.error) throw new Error(data.error);
+    showToast(`✓ Championnat "${data.championship_name}" — ${data.events} étapes, ${data.results} résultats`);
+    await adminRefresh();
+  } catch(e) { showToast('Erreur sync : ' + e.message); }
+}
+
+async function adminSyncResults() {
+  if (!confirm('Récupérer les derniers résultats depuis ACSM ?\n\nCeci importe le fichier de résultat le plus récent pour l\'étape courante.')) return;
+  showToast('Récupération résultats ACSM…');
+  try {
+    const data = await gasGet('fetch_acsm_results');
+    if (data.error) throw new Error(data.error);
+    let msg = `✓ ${data.filename} — ${data.results} résultats, ${data.damage_entries} dégâts`;
+    showToast(msg);
+    await adminRefresh();
+  } catch(e) { showToast('Erreur fetch : ' + e.message); }
+}
 
 function adminShowDrivers() {
   document.getElementById('admin-config-panel').style.display  = 'none';

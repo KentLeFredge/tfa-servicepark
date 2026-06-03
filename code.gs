@@ -1107,7 +1107,23 @@ function importSessionCsv(csvText) {
     var guid    = findGuid(r.name);
     var bestMs  = timeStrToMs(r.best_lap_str);
     var carModel= nameToModel[(r.name || '').toLowerCase().trim()] || '';
-    if (!guid) unmatched.push(r.name);
+    if (!guid) { unmatched.push(r.name); }
+    else {
+      // Mettre à jour driver_name dans driver_state si vide
+      var dsSheet2  = getSheet('driver_state');
+      var dsData2   = dsSheet2.getDataRange().getValues();
+      var dsH2      = dsData2[0];
+      var gIdx2     = dsH2.indexOf('driver_guid');
+      var nIdx2     = dsH2.indexOf('driver_name');
+      for (var mi = 1; mi < dsData2.length; mi++) {
+        if (String(dsData2[mi][gIdx2]) === String(guid)) {
+          if (!String(dsData2[mi][nIdx2] || '').trim()) {
+            dsSheet2.getRange(mi + 1, nIdx2 + 1).setValue(r.name);
+          }
+          break;
+        }
+      }
+    }
     srSheet.appendRow([stageId, guid || '', r.name, carModel, '', bestMs, r.laps, r.pos, '']);
     inserted++;
   });
@@ -1268,6 +1284,19 @@ function exportEntryList() {
   var cfg      = readConfigSheet();
   var stageId  = PROPS.getProperty('CURRENT_STAGE_ID') || '';
 
+  // Index noms depuis stage_results (fallback si driver_name vide dans driver_state)
+  var srSheet   = getSheet('stage_results');
+  var nameByGuid= {};
+  if (srSheet) {
+    var srData = srSheet.getDataRange().getValues();
+    var srH    = srData[0];
+    for (var si = 1; si < srData.length; si++) {
+      var sg = String(srData[si][srH.indexOf('driver_guid')] || '');
+      var sn = String(srData[si][srH.indexOf('driver_name')] || '');
+      if (sg && sn && !nameByGuid[sg]) nameByGuid[sg] = sn;
+    }
+  }
+
   // Lire driver_state
   var dsSheet  = getSheet('driver_state');
   var dsData   = dsSheet.getDataRange().getValues();
@@ -1342,7 +1371,7 @@ function exportEntryList() {
       Driver: {
         Guid:      guid,
         GuidsList: [guid],
-        Name:      String(dv('driver_name') || '').trim(),
+        Name:      (String(dv('driver_name') || '').trim() || nameByGuid[guid] || ''),
         Team:      String(dv('team')        || '').trim(),
         Nation:    ''
       },

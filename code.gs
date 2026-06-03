@@ -1760,6 +1760,7 @@ function fetchAcsmResults() {
 // Import d'un résultat de session JSON ACSM (format Results direct)
 // Différent de importChampionship : c'est un résultat isolé, pas un championnat complet
 function importSessionJson(sessionData, stageId) {
+  ensureConfigSheet(); // ajoute les clés manquantes si ancienne feuille
   var cfg             = readConfigSheet();
   var vehicleProfiles = loadVehicleProfiles();
 

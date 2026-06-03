@@ -780,6 +780,7 @@ function getAdminOverview() {
     var drow = dsData[i];
     var dv   = (function(r) { return function(col) { var idx = dsHeaders.indexOf(col); return idx >= 0 ? r[idx] : null; }; })(drow);
     var guid = String(dv('driver_guid'));
+    if (String(dv('car_model') || '') === 'tv_car') continue; // Exclure voitures de diffusion
     var comps= dcIndex[guid] || [];
     var res  = resultsByGuid[guid] || null;
     var damaged = comps.filter(function(c) { return c.score > 5; });
@@ -965,6 +966,7 @@ function importChampionship(data) {
     laps.forEach(function(lap) {
       var guid = lap.DriverGuid;
       if (!guid || lap.LapTime > 1800000) return;
+      if ((lap.CarModel || '') === 'tv_car') return;
       if (!bestLaps[guid] || lap.LapTime < bestLaps[guid].time) {
         bestLaps[guid] = { time: lap.LapTime, name: lap.DriverName || '', car: lap.CarModel || '' };
       }
@@ -1200,6 +1202,7 @@ function importEntryList(cars, stageId) {
   var inserted = 0, updated = 0;
   normalised.forEach(function(e) {
     if (!e.guid || e.guid === 'undefined') return;
+    if (e.model === 'tv_car') return; // Voiture de diffusion — exclure
 
     if (existingGuids[e.guid]) {
       var row = existingGuids[e.guid];

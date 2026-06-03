@@ -743,8 +743,8 @@
   },
 
   "score_thresholds": {
-    "rien":     [0,  15],
-    "leger":    [15, 30],
+    "rien":     [0,   5],
+    "leger":    [5,  20],
     "modere":   [30, 55],
     "severe":   [55, 75],
     "critique": [75, 100]

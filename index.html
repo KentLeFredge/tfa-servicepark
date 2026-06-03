@@ -660,17 +660,27 @@ const CONFIG = {
   <div class="panel" id="panel-admin">
     <div class="admin-toolbar">
       <div class="admin-stage-badge" id="admin-stage-badge">—</div>
-      <button class="btn primary" id="admin-btn-refresh" onclick="adminRefresh()">↻</button>
-      <button class="btn" style="border-color:var(--yellow);color:var(--yellow);" onclick="adminOpenImport('championship')">📥 Championnat</button>
-      <button class="btn" style="border-color:var(--green);color:var(--green);" onclick="adminOpenImport('session_json')">📥 Résultats</button>
+      <button class="btn primary" id="admin-btn-refresh" onclick="adminRefresh()" title="Rafraîchir">↻</button>
       <span class="toolbar-sep">|</span>
-      <button class="btn" style="border-color:var(--cyan);color:var(--cyan);" id="admin-btn-export" onclick="adminExport()">⬇ entry_list.ini</button>
-      <button class="btn" style="border-color:var(--border-l);color:var(--text-dim);" onclick="adminOpenImport('vehicle_profiles')">🚗 Profils</button>
+      <span style="font-size:10px;color:var(--text-dim);font-weight:700;letter-spacing:0.06em;">ORDRE :</span>
+      <button class="btn" style="border-color:var(--yellow);color:var(--yellow);position:relative" onclick="adminOpenImport('championship')" title="① Pilotes + étapes — une fois par saison ou changement d'équipage">
+        <span style="position:absolute;top:-6px;left:-4px;font-size:9px;background:var(--yellow);color:#000;padding:0 4px;border-radius:2px;font-weight:800">①</span>
+        Championnat
+      </button>
+      <button class="btn" style="border-color:var(--green);color:var(--green);position:relative" onclick="adminOpenImport('session_json')" title="② Dégâts + classement — après chaque course">
+        <span style="position:absolute;top:-6px;left:-4px;font-size:9px;background:var(--green);color:#000;padding:0 4px;border-radius:2px;font-weight:800">②</span>
+        Résultats
+      </button>
+      <button class="btn" style="border-color:var(--cyan);color:var(--cyan);position:relative" id="admin-btn-export" onclick="adminExport()" title="③ Après la fin du service park">
+        <span style="position:absolute;top:-6px;left:-4px;font-size:9px;background:var(--cyan);color:#000;padding:0 4px;border-radius:2px;font-weight:800">③</span>
+        ⬇ entry_list.ini
+      </button>
       <span class="toolbar-sep">|</span>
-      <input type="text" id="admin-inp-stage" placeholder="event_id" style="font-family:'Barlow Condensed',sans-serif;font-size:13px;padding:5px 8px;background:var(--bg-panel);border:1px solid var(--border-l);color:var(--text);width:160px;" />
+      <input type="text" id="admin-inp-stage" placeholder="CURRENT_STAGE_ID" style="font-family:'Barlow Condensed',sans-serif;font-size:13px;padding:5px 8px;background:var(--bg-panel);border:1px solid var(--border-l);color:var(--text);width:180px;" />
       <button class="btn" onclick="adminSetStage()">Appliquer</button>
-      <button class="btn danger" onclick="adminResetStage()">⚠ Reset étape</button>
-      <button class="btn danger" onclick="adminPurgeAll()" style="opacity:0.7">☠ Purge BDD</button>
+      <span class="toolbar-sep">|</span>
+      <button class="btn danger" onclick="adminResetStage()">⚠ Reset</button>
+      <button class="btn danger" onclick="adminPurgeAll()" style="opacity:0.7">☠ Purge</button>
     </div>
     <div class="admin-stats" id="admin-stats">
       <div class="admin-stat"><div class="admin-stat-val cyan" id="as-total">—</div><div class="admin-stat-label">Pilotes</div></div>

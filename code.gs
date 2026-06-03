@@ -1259,28 +1259,51 @@ function resetStage(stageId) {
 // ──────────────────────────────────────────────────────────────
 
 function exportEntryList() {
+  // S'assurer que les colonnes skin et team existent
+  ensureDriverStateColumn('skin');
+  ensureDriverStateColumn('team');
+
   var dsSheet  = getSheet('driver_state');
   var dsData   = dsSheet.getDataRange().getValues();
   var dsHeaders= dsData[0];
-  var cars = [];
+  var cars     = [];
+  var carIdx   = 0;
+
   for (var i = 1; i < dsData.length; i++) {
     var row = dsData[i];
-    var dv  = (function(r) { return function(col) { var idx = dsHeaders.indexOf(col); return idx >= 0 ? r[idx] : null; }; })(row);
-    var guid = String(dv('driver_guid') || '');
+    var dv  = (function(r, h) {
+      return function(col) { var idx = h.indexOf(col); return idx >= 0 ? r[idx] : ''; };
+    })(row, dsHeaders);
+
+    var guid = String(dv('driver_guid') || '').trim();
     if (!guid) continue;
+
+    // Ignorer les voitures spectatrices (tv_car) à l'export
+    var model = String(dv('car_model') || '').trim();
+    if (model === 'tv_car') continue;
+
     cars.push({
       BallastKG:  Number(dv('ballast_kg'))  || 0,
-      CarId:      i - 1,
-      Driver:     { Guid: guid, GuidsList: [guid],
-                    Name: String(dv('driver_name') || ''),
-                    Team: String(dv('team')        || ''),
-                    Nation: '' },
-      Model:      String(dv('car_model')    || ''),
+      CarId:      carIdx++,
+      Driver: {
+        Guid:      guid,
+        GuidsList: [guid],
+        Name:      String(dv('driver_name') || '').trim(),
+        Team:      String(dv('team')        || '').trim(),
+        Nation:    ''
+      },
+      Model:      model,
       Restrictor: Number(dv('restrictor'))  || 0,
-      Skin:       String(dv('skin')         || '')
+      Skin:       String(dv('skin')         || '').trim()
     });
   }
-  return { Version: 7, Stage: PROPS.getProperty('CURRENT_STAGE_ID') || '', ExportedAt: new Date().toISOString(), Cars: cars };
+
+  return {
+    Version:     7,
+    Stage:       PROPS.getProperty('CURRENT_STAGE_ID') || '',
+    ExportedAt:  new Date().toISOString(),
+    Cars:        cars
+  };
 }
 
 // ──────────────────────────────────────────────────────────────

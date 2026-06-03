@@ -1785,7 +1785,6 @@ async function adminExport() {
       lines.push(`DRIVER_NAME=${(car.Driver && car.Driver.Name) || ''}`);
       lines.push(`TEAM=${(car.Driver && car.Driver.Team) || ''}`);
       lines.push(`GUID=${(car.Driver && car.Driver.Guid) || ''}`);
-      lines.push(`SKIN=${car.Skin || ''}`);
       lines.push(`BALLAST=${car.BallastKG || 0}`);
       lines.push(`RESTRICTOR=${car.Restrictor || 0}`);
       lines.push(`FIXED_SETUP=`);

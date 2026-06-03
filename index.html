@@ -1082,9 +1082,9 @@ function initAuth() {
     AUTH.token   = token;
     AUTH.steamId = steamId;
     AUTH.isAdmin = urlParams.get('is_admin') === '1';
-    sessionStorage.setItem('tfa_token',    token);
-    sessionStorage.setItem('tfa_steam_id', steamId);
-    sessionStorage.setItem('tfa_is_admin', AUTH.isAdmin ? '1' : '0');
+    localStorage.setItem('tfa_token',    token);
+    localStorage.setItem('tfa_steam_id', steamId);
+    localStorage.setItem('tfa_is_admin', AUTH.isAdmin ? '1' : '0');
     history.replaceState({}, '', location.pathname);
     showLoading();
     loadFromGAS();
@@ -1092,12 +1092,12 @@ function initAuth() {
   }
 
   /* 2. Session encore active */
-  const sToken   = sessionStorage.getItem('tfa_token');
-  const sSteamId = sessionStorage.getItem('tfa_steam_id');
+  const sToken   = localStorage.getItem('tfa_token');
+  const sSteamId = localStorage.getItem('tfa_steam_id');
   if (sToken && sSteamId) {
     AUTH.token   = sToken;
     AUTH.steamId = sSteamId;
-    AUTH.isAdmin = sessionStorage.getItem('tfa_is_admin') === '1';
+    AUTH.isAdmin = localStorage.getItem('tfa_is_admin') === '1';
     showLoading();
     loadFromGAS();
     return;

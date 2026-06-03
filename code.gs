@@ -415,8 +415,17 @@ function ensureAdminsSheet() {
 function handleSteamCallback(e) {
   var claimedId = e.parameter['openid.claimed_id'] || '';
   var steamId   = claimedId.replace(/.*\//, '');
-  if (!/^\d{17}$/.test(steamId))            return HtmlService.createHtmlOutput('<h2>Auth failed: invalid Steam ID</h2>');
-  if (!verifySteamSignature(e.parameters))  return HtmlService.createHtmlOutput('<h2>Auth failed: signature invalide</h2>');
+  var serviceUrl = PROPS.getProperty('SERVICE_PARK_URL') || '';
+  var retryPage  = '<style>body{font-family:sans-serif;background:#1e2428;color:#e8eaec;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;}</style>' +
+    '<div style="text-align:center;padding:40px;">' +
+    '<div style="font-size:2rem;margin-bottom:16px;">⚠</div>' +
+    '<div style="font-size:1.1rem;font-weight:700;color:#f0ad4e;margin-bottom:8px;">Authentification expirée</div>' +
+    '<div style="font-size:13px;color:#9aa4ac;margin-bottom:24px;">La session Steam a expiré. Clique sur Réessayer.</div>' +
+    '<a href="' + serviceUrl + '" style="background:#5bc0de;color:#1e2428;padding:12px 28px;font-weight:700;text-decoration:none;font-size:14px;letter-spacing:0.08em;">RÉESSAYER</a>' +
+    '</div>';
+
+  if (!/^\d{17}$/.test(steamId))           return HtmlService.createHtmlOutput(retryPage);
+  if (!verifySteamSignature(e.parameters)) return HtmlService.createHtmlOutput(retryPage);
   var token      = generateToken(steamId);
   var serviceUrl = PROPS.getProperty('SERVICE_PARK_URL');
   var isAdmin    = isAdminSteamId(steamId) ? '1' : '0';

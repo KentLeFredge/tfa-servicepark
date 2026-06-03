@@ -1076,10 +1076,12 @@ async function loadFromGAS() {
   try {
     const data = await gasGet('get_driver');
     if (data.error) {
-      if (data.error === 'driver_not_found' && AUTH.isAdmin) {
-        // Admin sans entrée pilote → accès direct au panel admin UNIQUEMENT
-        // AUTH.isAdmin est vérifié côté API (token valide + steam_id dans feuille admins)
-        STATE = { driver_name: 'Admin', driver_guid: AUTH.steamId, car_model: '',
+      // Admin sans entrée pilote → accès avec son vrai nom
+      if ((data.error === 'driver_not_found' || data.error.startsWith('admin_no_pilot:')) && AUTH.isAdmin) {
+        const adminName = data.error.startsWith('admin_no_pilot:')
+          ? data.error.replace('admin_no_pilot:', '')
+          : 'Admin';
+        STATE = { driver_name: adminName, driver_guid: AUTH.steamId, car_model: '',
                   skin: '', stage_id: STAGE_ID, validated: false,
                   repair_budget_min: 60, repair_used_min: 0,
                   ballast_kg: 0, restrictor: 0, penalty_seconds: 0, components: [],

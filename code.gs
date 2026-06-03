@@ -513,7 +513,12 @@ function getDriverData(steamId, stageId) {
       }
     }
   }
-  if (!driverRow) throw new Error('driver_not_found');
+  if (!driverRow) {
+    // Avant de lancer driver_not_found, vérifier si c'est un admin connu
+    var adminName = getAdminName(steamId);
+    if (adminName !== null) throw new Error('admin_no_pilot:' + adminName);
+    throw new Error('driver_not_found');
+  }
   function dsVal(col) { var idx = dsHeaders.indexOf(col); return idx >= 0 ? driverRow[idx] : null; }
 
   // Composants depuis damage_components
@@ -1493,6 +1498,25 @@ function exportEntryList() {
 // ──────────────────────────────────────────────────────────────
 // ADMIN — CONFIG
 // ──────────────────────────────────────────────────────────────
+
+// Retourne le nom de l'admin si son Steam ID est dans la feuille admins, null sinon
+function getAdminName(steamId) {
+  var sheet = getSheet('admins');
+  if (!sheet) return null;
+  var data = sheet.getDataRange().getValues();
+  var h    = data[0];
+  var idIdx= h.indexOf('steam_id');
+  var nIdx = h.indexOf('driver_name');
+  var aIdx = h.indexOf('active');
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][idIdx] || '').trim() === String(steamId)) {
+      var active = data[i][aIdx];
+      if (active === false || active === 'FALSE' || active === 0) return null;
+      return String(data[i][nIdx] || '').trim() || 'Admin';
+    }
+  }
+  return null;
+}
 
 function getAdminsList() {
   ensureAdminsSheet();

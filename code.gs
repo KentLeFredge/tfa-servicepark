@@ -296,14 +296,12 @@ function doPost(e) {
     validateRepairs(steamId, e.parameter.stage_id || PROPS.getProperty('CURRENT_STAGE_ID'));
     return jsonResponse({ ok: true });
   });
-  if (action === 'import_entry_list')     return withAdminToken(e, function() {
-    return jsonResponse(importEntryList(body.cars || [], body.stage_id || PROPS.getProperty('CURRENT_STAGE_ID')));
-  });
-  if (action === 'import_championship')   return withAdminToken(e, function() {
+  if (action === 'import_championship')     return withAdminToken(e, function() {
     return jsonResponse(importChampionship(body));
   });
-  if (action === 'import_session_csv')    return withAdminToken(e, function() {
-    return jsonResponse(importSessionCsv(e.postData.contents || ''));
+  if (action === 'import_session_json')     return withAdminToken(e, function() {
+    var stageId = e.parameter.stage_id || PROPS.getProperty('CURRENT_STAGE_ID');
+    return jsonResponse(importSessionJson(body, stageId));
   });
   if (action === 'import_vehicle_profiles') return withAdminToken(e, function() {
     return jsonResponse(importVehicleProfiles(body));

@@ -25,7 +25,7 @@ var CONFIG_DEFAULTS = {
   ARTEFACT_CAR_MAX_SPEED:   150,
   ARTEFACT_MAX_REL_Y:       0.3,
   // Seuils score → sévérité (pour affichage)
-  SCORE_RIEN_MAX:            15,
+  SCORE_RIEN_MAX:             5,
   SCORE_LEGER_MAX:           20,
   SCORE_MODERE_MAX:          45,
   SCORE_SEVERE_MAX:          70,
@@ -116,6 +116,14 @@ function ensureConfigSheet() {
     });
     sheet.getRange(1, 1, 1, 3).setFontWeight('bold');
     sheet.setColumnWidth(1, 250); sheet.setColumnWidth(2, 80); sheet.setColumnWidth(3, 400);
+  } else {
+    // Ajouter les clés manquantes (migration)
+    var data    = sheet.getDataRange().getValues();
+    var existing= {};
+    for (var i = 1; i < data.length; i++) existing[String(data[i][0] || '')] = true;
+    Object.keys(CONFIG_DEFAULTS).forEach(function(k) {
+      if (!existing[k]) sheet.appendRow([k, CONFIG_DEFAULTS[k], CONFIG_DESCRIPTIONS[k] || '']);
+    });
   }
   return sheet;
 }

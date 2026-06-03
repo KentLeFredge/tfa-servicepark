@@ -418,6 +418,16 @@ function getSheet(name) {
   return SpreadsheetApp.openById(PROPS.getProperty('SHEET_ID')).getSheetByName(name);
 }
 
+// Ajoute une colonne manquante à driver_state si nécessaire
+function ensureDriverStateColumn(colName) {
+  var sheet   = getSheet('driver_state');
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  if (headers.indexOf(colName) === -1) {
+    var newCol = sheet.getLastColumn() + 1;
+    sheet.getRange(1, newCol).setValue(colName);
+  }
+}
+
 function getOrCreateSheet(name, headers) {
   var ss    = SpreadsheetApp.openById(PROPS.getProperty('SHEET_ID'));
   var sheet = ss.getSheetByName(name);
@@ -858,11 +868,38 @@ function importChampionship(data) {
     ['driver_guid','stage_id','component_id','score','severity','ballast_kg','restrictor','repair_min','repaired']);
 
   ensureConfigSheet();
+  ensureDriverStateColumn('skin');
+  ensureDriverStateColumn('team');
   var cfg             = readConfigSheet();
   var vehicleProfiles = loadVehicleProfiles();
   var events          = data.Events || [];
   var totalResults    = 0;
   var totalDamage     = 0;
+
+  // ── Importer les entrants depuis Classes[].Entrants ──
+  var stageIdForEntrants = PROPS.getProperty('CURRENT_STAGE_ID') || 'etape_01';
+  var entrantCars = [];
+  (data.Classes || []).forEach(function(cls) {
+    var entrants = cls.Entrants || {};
+    Object.keys(entrants).forEach(function(key) {
+      var e = entrants[key];
+      entrantCars.push({
+        guid:       String(e.GUID || ''),
+        name:       String(e.Name || ''),
+        team:       String(e.Team || ''),
+        model:      String(e.Model || ''),
+        skin:       String(e.Skin  || ''),
+        ballast:    0,
+        restrictor: 0,
+      });
+    });
+  });
+  if (entrantCars.length) {
+    // Réutilise importEntryList avec le format normalisé
+    importEntryList(entrantCars.map(function(e) {
+      return { GUID: e.guid, Name: e.name, Team: e.team, Model: e.model, Skin: e.skin };
+    }), stageIdForEntrants);
+  }
 
   // Supprimer les entrées damage_components liées à ce championnat
   var champEventIds = events.map(function(e, i) { return e.ID || ('event_' + i); });
@@ -1143,35 +1180,50 @@ function importEntryList(cars, stageId) {
   for (var i = 1; i < dsData.length; i++)
     existingGuids[String(dsData[i][dsHeaders.indexOf('driver_guid')])] = i + 1;
 
-  var inserted = 0, updated = 0;
-  for (var k = 0; k < cars.length; k++) {
-    var car    = cars[k];
+  // Normalise le format d'entrée : supporte Cars[] (session JSON) et Classes[].Entrants (championnat)
+  var normalised = [];
+  cars.forEach(function(car) {
+    // Format session JSON : { Driver: { Guid, Name }, Model, Skin, BallastKG, Restrictor }
+    // Format championnat Classes.Entrants : { GUID, Name, Team, Model, Skin, Ballast, Restrictor }
     var driver = car.Driver || car.driver || {};
-    var guid   = String(driver.Guid || driver.guid || car.GUID || '');
-    var name   = String(driver.Name || driver.name || car.Name || '');
-    var model  = String(car.Model   || car.model   || '');
-    var skin   = String(car.Skin    || car.skin     || '');
-    if (!guid || guid === 'undefined') continue;
+    normalised.push({
+      guid:       String(driver.Guid || driver.guid || car.GUID || car.guid || ''),
+      name:       String(driver.Name || driver.name || car.Name || car.name || ''),
+      team:       String(driver.Team || driver.team || car.Team || car.team || ''),
+      model:      String(car.Model   || car.model   || ''),
+      skin:       String(car.Skin    || car.skin    || ''),
+      ballast:    Number(car.BallastKG || car.Ballast || car.ballast || 0),
+      restrictor: Number(car.Restrictor || car.restrictor || 0),
+    });
+  });
 
-    if (existingGuids[guid]) {
-      var row = existingGuids[guid];
-      dsSheet.getRange(row, dsHeaders.indexOf('driver_name') + 1).setValue(name);
-      dsSheet.getRange(row, dsHeaders.indexOf('car_model')   + 1).setValue(model);
-      if (dsHeaders.indexOf('skin') >= 0) dsSheet.getRange(row, dsHeaders.indexOf('skin') + 1).setValue(skin);
+  var inserted = 0, updated = 0;
+  normalised.forEach(function(e) {
+    if (!e.guid || e.guid === 'undefined') return;
+
+    if (existingGuids[e.guid]) {
+      var row = existingGuids[e.guid];
+      dsSheet.getRange(row, dsHeaders.indexOf('driver_name') + 1).setValue(e.name);
+      dsSheet.getRange(row, dsHeaders.indexOf('car_model')   + 1).setValue(e.model);
+      if (dsHeaders.indexOf('skin') >= 0)
+        dsSheet.getRange(row, dsHeaders.indexOf('skin') + 1).setValue(e.skin);
+      if (dsHeaders.indexOf('team') >= 0)
+        dsSheet.getRange(row, dsHeaders.indexOf('team') + 1).setValue(e.team);
       updated++;
     } else {
       var rowData = dsHeaders.map(function(h) {
-        var map = { driver_guid: guid, driver_name: name, car_model: model,
+        var map = { driver_guid: e.guid, driver_name: e.name, car_model: e.model,
+          team: e.team, skin: e.skin,
           stage_id: stageId, validated: false, repair_used_min: 0,
           ballast_kg: 0, restrictor: 0, penalty_seconds: 0,
-          last_updated: new Date().toISOString(), skin: skin };
+          last_updated: new Date().toISOString() };
         return map[h] !== undefined ? map[h] : '';
       });
       dsSheet.appendRow(rowData);
       inserted++;
     }
-  }
-  return { ok: true, inserted: inserted, updated: updated, total: cars.length };
+  });
+  return { ok: true, inserted: inserted, updated: updated, total: normalised.length };
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -1219,7 +1271,10 @@ function exportEntryList() {
     cars.push({
       BallastKG:  Number(dv('ballast_kg'))  || 0,
       CarId:      i - 1,
-      Driver:     { Guid: guid, GuidsList: [guid], Name: String(dv('driver_name') || ''), Nation: '', Team: '' },
+      Driver:     { Guid: guid, GuidsList: [guid],
+                    Name: String(dv('driver_name') || ''),
+                    Team: String(dv('team')        || ''),
+                    Nation: '' },
       Model:      String(dv('car_model')    || ''),
       Restrictor: Number(dv('restrictor'))  || 0,
       Skin:       String(dv('skin')         || '')

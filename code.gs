@@ -1555,35 +1555,43 @@ function getAcsmBase() {
   return url.replace(/\/$/, ''); // supprimer slash final
 }
 
-// Sync championnat complet depuis ACSM → remplace import_championship manuel
+// Sync championnat complet depuis ACSM — teste plusieurs paths API
 function syncAcsmChampionship() {
-  var base   = getAcsmBase();
-  var champId= PROPS.getProperty('ACSM_CHAMPIONSHIP_ID') || '';
+  var base    = getAcsmBase();
+  var champId = PROPS.getProperty('ACSM_CHAMPIONSHIP_ID') || '';
 
-  if (!base)   throw new Error('ACSM_URL non configuré dans Script Properties');
-  if (!champId)throw new Error('ACSM_CHAMPIONSHIP_ID non configuré dans Script Properties');
+  if (!base)    throw new Error('ACSM_URL non configuré dans Script Properties');
+  if (!champId) throw new Error('ACSM_CHAMPIONSHIP_ID non configuré dans Script Properties');
 
-  var url = base + '/api/championships/' + champId;
-  var response;
-  try {
-    response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
-  } catch(e) {
-    throw new Error('Impossible de joindre ACSM : ' + e.message);
+  // ACSM v2.4 : essaie les paths connus
+  var candidates = [
+    base + '/api/championships/' + champId,
+    base + '/api/championship/'  + champId,
+    base + '/api/championships/' + champId + '/export',
+  ];
+
+  var response = null, usedUrl = '';
+  for (var i = 0; i < candidates.length; i++) {
+    try {
+      var r = UrlFetchApp.fetch(candidates[i], { muteHttpExceptions: true });
+      if (r.getResponseCode() === 200) { response = r; usedUrl = candidates[i]; break; }
+    } catch(e) {}
   }
 
-  if (response.getResponseCode() !== 200) {
-    throw new Error('ACSM a répondu ' + response.getResponseCode() + ' — vérifier ACSM_URL et ACSM_CHAMPIONSHIP_ID');
+  if (!response) {
+    throw new Error('ACSM 404 sur tous les paths. URL de base : ' + base + ' | ID : ' + champId +
+      '\nPaths testés : ' + candidates.join(' | '));
   }
 
   var data;
   try { data = JSON.parse(response.getContentText()); } catch(e) {
-    throw new Error('Réponse ACSM non parseable : ' + e.message);
+    throw new Error('Réponse non parseable depuis ' + usedUrl);
   }
 
-  // Même logique qu'importChampionship
   var result = importChampionship(data);
-  result.source = 'acsm_fetch';
+  result.source            = 'acsm_fetch';
   result.championship_name = data.Name || '';
+  result.url_used          = usedUrl;
   return result;
 }
 

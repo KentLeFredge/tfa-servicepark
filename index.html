@@ -236,6 +236,28 @@ body { font-family:'Barlow Condensed',sans-serif; background:#3a4048; display:fl
 .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--bg-dark); border:1px solid var(--cyan); color:var(--cyan); padding:8px 20px; font-size:13px; font-weight:700; letter-spacing:0.06em; opacity:0; pointer-events:none; transition:opacity 0.3s; z-index:100; }
 .toast.show { opacity:1; }
 
+/* ── MUSIC BUTTON ── */
+#music-btn {
+  position:fixed; bottom:16px; left:16px; z-index:150;
+  width:36px; height:36px; border-radius:50%;
+  background:var(--bg-panel); border:1px solid var(--border-l);
+  color:var(--text-dim); font-size:16px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:border-color 0.2s, color 0.2s; user-select:none;
+}
+#music-btn:hover { border-color:var(--cyan); color:var(--cyan); }
+#music-btn.muted { border-color:var(--border); color:var(--border-l); }
+
+/* ── EXIT WIPE ── */
+#exit-wipe {
+  position:fixed; inset:0; z-index:500;
+  background:#000;
+  transform:translateY(-100%);
+  transition:transform 0.8s cubic-bezier(0.4,0,0.2,1);
+  pointer-events:none;
+}
+#exit-wipe.active { transform:translateY(0); pointer-events:all; }
+
 /* ── ADMIN PANEL ── */
 .admin-toolbar { display:flex; align-items:center; gap:10px; padding:12px 16px; background:var(--bg-panel); border-bottom:2px solid var(--border); flex-wrap:wrap; }
 .admin-stage-badge { font-size:12px; font-weight:700; padding:4px 12px; border:1px solid var(--yellow); color:var(--yellow); letter-spacing:0.06em; }
@@ -765,6 +787,17 @@ const CONFIG = {
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- ── AUDIO ── -->
+<audio id="bg-music" loop preload="auto">
+  <source src="music.mp3" type="audio/mpeg">
+</audio>
+
+<!-- ── BOUTON MUSIQUE ── -->
+<button id="music-btn" title="Musique on/off">🔊</button>
+
+<!-- ── EXIT WIPE ── -->
+<div id="exit-wipe"></div>
 
 <script>
 /* ════════════════════════════════════
@@ -2180,6 +2213,115 @@ document.getElementById('btn-demo').addEventListener('click', () => {
    DÉMARRAGE
    ════════════════════════════════════ */
 initAuth();
+
+/* ════════════════════════════════════
+   TRADUCTIONS — appliquer au chargement
+   ════════════════════════════════════ */
+// Fix : appliquer les traductions dès que l'UI est initialisée
+const _origInitUI = initUI;
+initUI = function() {
+  _origInitUI.apply(this, arguments);
+  applyTranslations();
+};
+
+/* ════════════════════════════════════
+   MUSIQUE DE FOND
+   ════════════════════════════════════ */
+const _music    = document.getElementById('bg-music');
+const _musicBtn = document.getElementById('music-btn');
+let   _musicMuted = false;
+let   _musicStarted = false;
+
+_music.volume = 0.35;
+
+function startMusic() {
+  if (_musicStarted) return;
+  _musicStarted = true;
+  _music.play().catch(function() {});
+}
+
+_musicBtn.addEventListener('click', function() {
+  _musicMuted = !_musicMuted;
+  _music.muted = _musicMuted;
+  _musicBtn.textContent = _musicMuted ? '🔇' : '🔊';
+  _musicBtn.classList.toggle('muted', _musicMuted);
+  if (!_musicMuted) startMusic();
+});
+
+// Démarrer au premier clic utilisateur (politique autoplay navigateurs)
+document.addEventListener('click', startMusic, { once: true });
+
+/* ════════════════════════════════════
+   BRUITAGES CLICS (Web Audio API)
+   Tabs + boutons sauf panel admin
+   ════════════════════════════════════ */
+let _audioCtx = null;
+
+function getAudioCtx() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return _audioCtx;
+}
+
+function playClick(type) {
+  // type: 'tab' (clic onglet) | 'btn' (clic bouton)
+  try {
+    var ctx  = getAudioCtx();
+    var osc  = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    if (type === 'tab') {
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.1);
+    } else {
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      gain.gain.setValueAtTime(0.06, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.06);
+    }
+  } catch(e) {}
+}
+
+// Branchement sur les onglets nav
+document.querySelectorAll('.nav-tab').forEach(function(btn) {
+  btn.addEventListener('click', function() { playClick('tab'); });
+});
+
+// Branchement sur les boutons hors admin
+document.querySelectorAll('.btn:not(#panel-admin .btn):not(.admin-toolbar .btn)').forEach(function(btn) {
+  btn.addEventListener('click', function() { playClick('btn'); });
+});
+
+/* ════════════════════════════════════
+   EXIT — fondu noir + glissement
+   ════════════════════════════════════ */
+const _exitWipe = document.getElementById('exit-wipe');
+
+// Override du bouton Fermer dans l'onglet Quitter
+document.getElementById('btn-exit').addEventListener('click', function(e) {
+  e.stopImmediatePropagation(); // remplace le window.close() existant
+  e.preventDefault();
+  // Arrêter la musique en fondu
+  if (!_music.paused) {
+    var fadeOut = setInterval(function() {
+      if (_music.volume > 0.03) {
+        _music.volume -= 0.03;
+      } else {
+        _music.pause();
+        clearInterval(fadeOut);
+      }
+    }, 40);
+  }
+  // Wipe noir de haut en bas
+  _exitWipe.classList.add('active');
+  setTimeout(function() { window.close(); }, 900);
+}, true); // capture phase pour override
+
 </script>
 </body>
 </html>

@@ -272,6 +272,9 @@ function doGet(e) {
   if (action === 'fetch_acsm_results')    return withAdminToken(e, function() {
     return jsonResponse(fetchAcsmResults());
   });
+  if (action === 'sync_acsm_championship') return withAdminToken(e, function() {
+    return jsonResponse(syncAcsmChampionship());
+  });
   return jsonResponse({ error: 'unknown_action' });
 }
 
@@ -299,9 +302,6 @@ function doPost(e) {
   });
   if (action === 'import_vehicle_profiles') return withAdminToken(e, function() {
     return jsonResponse(importVehicleProfiles(body));
-  });
-  if (action === 'sync_acsm_championship') return withAdminToken(e, function() {
-    return jsonResponse(syncAcsmChampionship());
   });
   if (action === 'reset_stage')           return withAdminToken(e, function() {
     return jsonResponse(resetStage(body.stage_id || PROPS.getProperty('CURRENT_STAGE_ID')));

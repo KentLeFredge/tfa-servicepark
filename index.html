@@ -1093,12 +1093,19 @@ function initUI() {
   document.getElementById('driver-name').textContent = STATE.driver_name;
 
   // Preview livrée : essaie preview.jpg puis livery.png (formats ACSM)
+  // Reset fallback avant de charger une nouvelle image
+  document.getElementById('car-fallback').style.display = 'none';
+  document.getElementById('img-loading').classList.remove('hidden');
+
   const liveryBase = STATE.skin
     ? `https://acsm.revivalseries.fr/content/cars/${STATE.car_model}/skins/${STATE.skin}/preview.jpg`
     : '';
   if (liveryBase) {
     document.getElementById('livery-preview').src = liveryBase;
     document.getElementById('info-livery').src     = liveryBase;
+  } else {
+    document.getElementById('img-loading').classList.add('hidden');
+    document.getElementById('car-fallback').style.display = 'flex';
   }
 
   document.getElementById('stage-name').textContent = STATE.stage_id;

@@ -499,9 +499,19 @@ function getDriverData(steamId, stageId) {
   var dsSheet  = getSheet('driver_state');
   var dsData   = dsSheet.getDataRange().getValues();
   var dsHeaders= dsData[0];
-  var driverRow= null;
+  var driverRow    = null;
+  var guidIdx      = dsHeaders.indexOf('driver_guid');
+  var allGuidsIdx  = dsHeaders.indexOf('all_guids');
   for (var i = 1; i < dsData.length; i++) {
-    if (String(dsData[i][dsHeaders.indexOf('driver_guid')]) === String(steamId)) { driverRow = dsData[i]; break; }
+    // 1. Chercher par GUID principal
+    if (String(dsData[i][guidIdx]) === String(steamId)) { driverRow = dsData[i]; break; }
+    // 2. Chercher dans all_guids (co-pilotes, équipages)
+    if (allGuidsIdx >= 0) {
+      var ag = String(dsData[i][allGuidsIdx] || '');
+      if (ag && ag.split(';').map(function(g){return g.trim();}).indexOf(String(steamId)) !== -1) {
+        driverRow = dsData[i]; break;
+      }
+    }
   }
   if (!driverRow) throw new Error('driver_not_found');
   function dsVal(col) { var idx = dsHeaders.indexOf(col); return idx >= 0 ? driverRow[idx] : null; }
@@ -1249,6 +1259,7 @@ function importEntryList(cars, stageId) {
   ensureDriverStateColumn('team');
   ensureDriverStateColumn('class_id');
   ensureDriverStateColumn('class_name');
+  ensureDriverStateColumn('all_guids');
 
   var dsSheet  = getSheet('driver_state');
   var dsData   = dsSheet.getDataRange().getValues();
@@ -1257,7 +1268,7 @@ function importEntryList(cars, stageId) {
   for (var i = 1; i < dsData.length; i++)
     existingGuids[String(dsData[i][dsHeaders.indexOf('driver_guid')])] = i + 1;
 
-  // Normalise + expand multi-pilotes
+  // Normalise — UNE entrée par voiture, tous les GUIDs dans all_guids
   // Formats supportés :
   //   Championship Classes.Entrants : { GUID: "id1;id2;id3", Name, Team, Model, Skin, ClassID, _className }
   //   Session Cars[]                : { Driver: { Guid, GuidsList: [...], Name, Team, ClassID }, Model, Skin }
@@ -1275,19 +1286,25 @@ function importEntryList(cars, stageId) {
 
     if (!rawGuid || model === 'tv_car') return;
 
-    // Collecter tous les GUIDs : GUID avec ";" ET GuidsList
-    var guids = [];
-    // 1. GUID avec séparateur ";"
-    rawGuid.split(';').forEach(function(g) { var t = g.trim(); if (t) guids.push(t); });
-    // 2. GuidsList additionnels
+    // Collecter tous les GUIDs de l'équipage
+    var allGuids = [];
+    rawGuid.split(';').forEach(function(g) { var t = g.trim(); if (t) allGuids.push(t); });
     var guidsList = driver.GuidsList || driver.guidsList || [];
-    guidsList.forEach(function(g) { var t = String(g || '').trim(); if (t && guids.indexOf(t) === -1) guids.push(t); });
-    // 3. Déduplique
-    guids = guids.filter(function(g, i) { return guids.indexOf(g) === i; });
+    guidsList.forEach(function(g) { var t = String(g || '').trim(); if (t && allGuids.indexOf(t) === -1) allGuids.push(t); });
+    allGuids = allGuids.filter(function(g, i) { return allGuids.indexOf(g) === i; });
 
-    guids.forEach(function(guid) {
-      normalised.push({ guid: guid, name: name, team: team, model: model, skin: skin,
-                        classId: classId, className: className });
+    if (!allGuids.length) return;
+
+    // UNE seule entrée — pilote principal = premier GUID, all_guids = tous
+    normalised.push({
+      guid:      allGuids[0],
+      name:      name,
+      team:      team,
+      model:     model,
+      skin:      skin,
+      classId:   classId,
+      className: className,
+      allGuids:  allGuids.join(';'),
     });
   });
 
@@ -1310,11 +1327,13 @@ function importEntryList(cars, stageId) {
       if (dsHeaders.indexOf('team')       >= 0) dsSheet.getRange(row, dsHeaders.indexOf('team')       + 1).setValue(e.team);
       if (dsHeaders.indexOf('class_id')   >= 0) dsSheet.getRange(row, dsHeaders.indexOf('class_id')   + 1).setValue(e.classId);
       if (dsHeaders.indexOf('class_name') >= 0) dsSheet.getRange(row, dsHeaders.indexOf('class_name') + 1).setValue(e.className);
+      if (dsHeaders.indexOf('all_guids')  >= 0) dsSheet.getRange(row, dsHeaders.indexOf('all_guids')  + 1).setValue(e.allGuids || e.guid);
       updated++;
     } else {
       var rowData = dsHeaders.map(function(h) {
         var map = { driver_guid: e.guid, driver_name: e.name, car_model: e.model,
           team: e.team, skin: e.skin, class_id: e.classId, class_name: e.className,
+          all_guids: e.allGuids || e.guid,
           stage_id: stageId, validated: false, repair_used_min: 0,
           ballast_kg: 0, restrictor: 0, penalty_seconds: 0,
           last_updated: new Date().toISOString() };

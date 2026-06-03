@@ -1262,31 +1262,82 @@ function resetStage(stageId) {
 // ──────────────────────────────────────────────────────────────
 
 function exportEntryList() {
-  // S'assurer que les colonnes skin et team existent
   ensureDriverStateColumn('skin');
   ensureDriverStateColumn('team');
 
+  var cfg      = readConfigSheet();
+  var stageId  = PROPS.getProperty('CURRENT_STAGE_ID') || '';
+
+  // Lire driver_state
   var dsSheet  = getSheet('driver_state');
   var dsData   = dsSheet.getDataRange().getValues();
   var dsHeaders= dsData[0];
-  var cars     = [];
-  var carIdx   = 0;
+
+  // Lire damage_components pour calculer les pénalités réelles
+  var dcSheet  = getSheet('damage_components');
+  var dcByGuid = {}; // guid → [composants]
+  if (dcSheet) {
+    var dcData   = dcSheet.getDataRange().getValues();
+    var dcH      = dcData[0];
+    for (var j = 1; j < dcData.length; j++) {
+      var row  = dcData[j];
+      var guid = String(row[dcH.indexOf('driver_guid')] || '');
+      var sid  = String(row[dcH.indexOf('stage_id')]    || '');
+      if (sid !== stageId) continue;
+      if (!dcByGuid[guid]) dcByGuid[guid] = [];
+      dcByGuid[guid].push({
+        id:       String(row[dcH.indexOf('component_id')] || ''),
+        score:    Number(row[dcH.indexOf('score')])        || 0,
+        repaired: row[dcH.indexOf('repaired')] === true || row[dcH.indexOf('repaired')] === 'TRUE',
+      });
+    }
+  }
+
+  var penMax = {
+    refroidissement: Number(cfg.PENALTY_REFROIDISSEMENT_MAX) || 12,
+    direction:       Number(cfg.PENALTY_DIRECTION_MAX)       || 20,
+    transmission:    Number(cfg.PENALTY_TRANSMISSION_MAX)    || 8,
+    suspension:      Number(cfg.PENALTY_SUSPENSION_MAX)      || 8,
+    chassis:         Number(cfg.PENALTY_CHASSIS_MAX)         || 20,
+  };
+
+  var cars   = [];
+  var carIdx = 0;
 
   for (var i = 1; i < dsData.length; i++) {
-    var row = dsData[i];
-    var dv  = (function(r, h) {
+    var drow = dsData[i];
+    var dv   = (function(r, h) {
       return function(col) { var idx = h.indexOf(col); return idx >= 0 ? r[idx] : ''; };
-    })(row, dsHeaders);
+    })(drow, dsHeaders);
 
-    var guid = String(dv('driver_guid') || '').trim();
-    if (!guid) continue;
+    var guid  = String(dv('driver_guid') || '').trim();
+    var model = String(dv('car_model')   || '').trim();
+    if (!guid || model === 'tv_car') continue;
 
-    // Ignorer les voitures spectatrices (tv_car) à l'export
-    var model = String(dv('car_model') || '').trim();
-    if (model === 'tv_car') continue;
+    // Calculer ballast/restrictor depuis damage_components (source de vérité)
+    var comps        = dcByGuid[guid] || [];
+    var totalBallast = 0;
+    var restrValues  = [];
+
+    comps.forEach(function(c) {
+      if (c.repaired) return; // composant réparé → pas de pénalité
+      var penType = PENALTY_TYPE[c.id] || 'ballast_kg';
+      var penVal  = scoreToPenaltyValue(c.score, 0, penMax[c.id] || 0, cfg);
+      if (penType === 'ballast_kg') totalBallast += penVal;
+      else restrValues.push(penVal);
+    });
+
+    restrValues.sort(function(a,b) { return b-a; });
+    var w2          = Number(cfg.RESTRICTOR_SECOND_WEIGHT) || 0.3;
+    var totalRestr  = restrValues.length === 0 ? 0
+                    : restrValues.length === 1 ? restrValues[0]
+                    : restrValues[0] + restrValues[1] * w2;
+
+    var ballastFinal    = Math.round(Math.min(totalBallast, 40));
+    var restrictorFinal = Math.round(Math.min(totalRestr, 12));
 
     cars.push({
-      BallastKG:  Number(dv('ballast_kg'))  || 0,
+      BallastKG:  ballastFinal,
       CarId:      carIdx++,
       Driver: {
         Guid:      guid,
@@ -1296,16 +1347,16 @@ function exportEntryList() {
         Nation:    ''
       },
       Model:      model,
-      Restrictor: Number(dv('restrictor'))  || 0,
-      Skin:       String(dv('skin')         || '').trim()
+      Restrictor: restrictorFinal,
+      Skin:       String(dv('skin') || '').trim()
     });
   }
 
   return {
-    Version:     7,
-    Stage:       PROPS.getProperty('CURRENT_STAGE_ID') || '',
-    ExportedAt:  new Date().toISOString(),
-    Cars:        cars
+    Version:    7,
+    Stage:      stageId,
+    ExportedAt: new Date().toISOString(),
+    Cars:       cars
   };
 }
 

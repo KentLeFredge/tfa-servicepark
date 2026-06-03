@@ -664,6 +664,7 @@ const CONFIG = {
       <button class="btn" style="border-color:var(--green);color:var(--green);" id="admin-btn-import" onclick="adminOpenImport('session_csv')">📋 Résultats session</button>
       <button class="btn" style="border-color:var(--yellow);color:var(--yellow);" id="admin-btn-champ" onclick="adminOpenImport('championship')">🏆 Championnat</button>
       <button class="btn" style="border-color:var(--border-l);color:var(--text-dim);" onclick="adminOpenImport('entrylist')">👥 Entry list</button>
+      <button class="btn" style="border-color:var(--cyan);color:var(--cyan);" onclick="adminOpenImport('vehicle_profiles')">🚗 Profils véhicules</button>
       <button class="btn" style="border-color:var(--cyan);color:var(--cyan);" id="admin-btn-export" onclick="adminExport()">⬇ Exporter entry list</button>
       <input type="text" id="admin-inp-stage" placeholder="etape_02" style="font-family:'Barlow Condensed',sans-serif;font-size:13px;padding:5px 8px;background:var(--bg-panel);border:1px solid var(--border-l);color:var(--text);width:110px;" />
       <button class="btn" onclick="adminSetStage()">Changer étape</button>
@@ -1770,9 +1771,10 @@ function adminOpenImport(type) {
   document.getElementById('admin-dropzone').classList.remove('drag-over');
   document.getElementById('admin-dropzone').querySelector('.admin-dropzone-icon').textContent = '📂';
   const titles = {
-    session_csv:  ['📋 Résultats de session', 'Dépose le fichier .csv exporté depuis stracker/ACSM. Importe positions, temps et calcule les dégâts depuis les collisions.'],
-    championship: ['🏆 Importer Championnat',  'Dépose le fichier JSON du championnat exporté depuis ACSM. Importe les étapes, météo et résultats.'],
-    entrylist:    ['👥 Importer Entry List',    'Dépose le fichier JSON ACSM. Pilotes existants mis à jour, nouveaux créés.'],
+    session_csv:      ['📋 Résultats de session',  'Dépose le fichier .csv exporté depuis stracker/ACSM. Importe positions, temps et calcule les dégâts depuis les collisions.'],
+    championship:     ['🏆 Importer Championnat',   'Dépose le fichier JSON du championnat exporté depuis ACSM. Importe les étapes, météo et résultats.'],
+    entrylist:        ['👥 Importer Entry List',     'Dépose le fichier JSON ACSM. Pilotes existants mis à jour, nouveaux créés.'],
+    vehicle_profiles: ['🚗 Profils véhicules',       'Dépose le fichier tfa_vehicle_profiles.json. Définit les poids zones×composants par modèle pour un calcul précis des dégâts.'],
   };
   const [title, desc] = titles[_importType] || titles.entrylist;
   document.getElementById('admin-import-modal-title').textContent = title;
@@ -1853,6 +1855,10 @@ async function adminDoImport() {
         msg += `<br><span style="color:var(--yellow)">⚠ Non trouvés dans la BDD : ${data.unmatched.join(', ')}</span>`;
       }
       res.innerHTML = msg;
+    } else if (_importType === 'vehicle_profiles') {
+      data = await gasPost('import_vehicle_profiles', _importParsed);
+      if (data.error) throw new Error(data.error);
+      res.innerHTML = `✓ <strong>${data.vehicles}</strong> véhicules importés (${data.rows} entrées)`;
     } else if (_importType === 'championship') {
       data = await gasPost('import_championship', _importParsed);
       if (data.error) throw new Error(data.error);

@@ -313,6 +313,9 @@ function doPost(e) {
     PROPS.setProperty('CURRENT_STAGE_ID', body.stage_id);
     return jsonResponse({ ok: true, stage_id: body.stage_id });
   });
+  if (action === 'purge_db')              return withAdminToken(e, function() {
+    return jsonResponse(purgeDatabase());
+  });
   if (action === 'save_config')           return withAdminToken(e, function() {
     return jsonResponse(saveConfigFromAdmin(body.config || {}));
   });
@@ -1541,6 +1544,30 @@ function _recalcDriverTotals(guid, stageId) {
       break;
     }
   }
+}
+
+// ──────────────────────────────────────────────────────────────
+// ADMIN — PURGE BASE DE DONNÉES
+// Vide driver_state, damage_components, stage_results
+// Conserve : config, vehicle_profiles, championship_events
+// ──────────────────────────────────────────────────────────────
+
+function purgeDatabase() {
+  var ss      = SpreadsheetApp.openById(PROPS.getProperty('SHEET_ID'));
+  var purged  = [];
+  var SHEETS_TO_PURGE = ['driver_state', 'damage_components', 'stage_results'];
+
+  SHEETS_TO_PURGE.forEach(function(name) {
+    var sheet = ss.getSheetByName(name);
+    if (!sheet) return;
+    var lastRow = sheet.getLastRow();
+    if (lastRow > 1) {
+      sheet.deleteRows(2, lastRow - 1); // conserve la ligne d'en-têtes
+    }
+    purged.push(name);
+  });
+
+  return { ok: true, purged: purged };
 }
 
 // ──────────────────────────────────────────────────────────────

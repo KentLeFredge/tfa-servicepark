@@ -669,7 +669,8 @@ const CONFIG = {
       <span class="toolbar-sep">|</span>
       <input type="text" id="admin-inp-stage" placeholder="event_id" style="font-family:'Barlow Condensed',sans-serif;font-size:13px;padding:5px 8px;background:var(--bg-panel);border:1px solid var(--border-l);color:var(--text);width:160px;" />
       <button class="btn" onclick="adminSetStage()">Appliquer</button>
-      <button class="btn danger" onclick="adminResetStage()">⚠ Reset</button>
+      <button class="btn danger" onclick="adminResetStage()">⚠ Reset étape</button>
+      <button class="btn danger" onclick="adminPurgeAll()" style="opacity:0.7">☠ Purge BDD</button>
     </div>
     <div class="admin-stats" id="admin-stats">
       <div class="admin-stat"><div class="admin-stat-val cyan" id="as-total">—</div><div class="admin-stat-label">Pilotes</div></div>
@@ -1044,6 +1045,17 @@ async function loadFromGAS() {
   try {
     const data = await gasGet('get_driver');
     if (data.error) {
+      if (data.error === 'driver_not_found' && AUTH.isAdmin) {
+        // Admin sans entrée pilote → accès direct au panel admin
+        STATE = { driver_name: 'Admin', driver_guid: AUTH.steamId, car_model: '',
+                  skin: '', stage_id: STAGE_ID, validated: false,
+                  repair_budget_min: 60, repair_used_min: 0,
+                  ballast_kg: 0, restrictor: 0, penalty_seconds: 0, components: [],
+                  stage_results: [], next_stage: null };
+        hideLoginOverlay();
+        initUI();
+        return;
+      }
       const msg = data.error === 'driver_not_found'
         ? 'Pilote non trouvé — contacte l\'administrateur.'
         : data.error === 'unauthorized'
@@ -1718,6 +1730,24 @@ function adminRender(data) {
     </td>`;
     tbody.appendChild(detailTr);
   });
+}
+
+async function adminPurgeAll() {
+  const msg = '☠ PURGE COMPLÈTE DE LA BASE DE DONNÉES\n\n' +
+    'Seront supprimés :\n' +
+    '• driver_state (tous les pilotes)\n' +
+    '• damage_components (tous les dégâts)\n' +
+    '• stage_results (tous les résultats)\n\n' +
+    'Conservés : config, vehicle_profiles, championship_events\n\n' +
+    'Cette action est IRRÉVERSIBLE. Confirmer ?';
+  if (!confirm(msg)) return;
+  if (!confirm('Dernière confirmation — purger la BDD ?')) return;
+  try {
+    const data = await gasPost('purge_db', {});
+    if (data.error) throw new Error(data.error);
+    showToast(`BDD purgée : ${(data.purged || []).join(', ')}`);
+    await adminRefresh();
+  } catch(e) { showToast('Erreur purge : ' + e.message); }
 }
 
 async function adminToggleRepair(guid, componentId, currentRepaired) {

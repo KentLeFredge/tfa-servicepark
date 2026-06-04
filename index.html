@@ -1734,9 +1734,18 @@ function toggleRepair(id) {
 
   /* Sauvegarder en arrière-plan — fire and forget */
   if (!AUTH.demo) {
-    gasPost('save_repairs', { components: STATE.components })
-      .then(data => { if (data.error) showToast(t('toast_save_bg_err')); })
-      .catch(() => showToast(t('toast_save_bg_err')));
+    if (_apoGuid) {
+      // Mode admin-pilote : sauvegarder pour le pilote via admin routes
+      const stageId = ADMIN_DATA ? ADMIN_DATA.stage_id : STAGE_ID;
+      gasPost('admin_set_repair', {
+        driver_guid: _apoGuid, stage_id: stageId,
+        component_id: id, repaired: comp.repaired
+      }).catch(() => showToast(t('toast_save_bg_err')));
+    } else {
+      gasPost('save_repairs', { components: STATE.components })
+        .then(data => { if (data.error) showToast(t('toast_save_bg_err')); })
+        .catch(() => showToast(t('toast_save_bg_err')));
+    }
   }
 }
 
@@ -1970,9 +1979,11 @@ async function adminPurgeAll() {
    Charge les données du pilote dans STATE
    et affiche le .screen existant
    ════════════════════════════════════ */
-let _apoGuid      = null;
-let _savedState   = null;  // sauvegarde STATE admin
-let _savedIsAdmin = false;
+let _apoGuid           = null;
+let _savedState        = null;
+let _savedIsAdmin      = false;
+let _savedScreenParent = null;
+let _savedScreenNext   = null;
 const _apoEl = () => document.getElementById('admin-pilot-overlay');
 
 async function openAdminPilotOverlay(guid) {
@@ -2005,27 +2016,36 @@ async function openAdminPilotOverlay(guid) {
     AUTH.isAdmin = false; // les toggles fonctionnent normalement
 
     // Admin mode : désactiver le check validated pour les toggles
-    STATE.validated = false; // L'admin peut toujours modifier
+    STATE.validated = false;
 
-    // Render et naviguer vers l'onglet Réparations
+    // Naviguer vers réparations + render
     selectedId = null;
     goTab('repairs');
     renderAll();
-
-    // Afficher l'overlay
-    _apoEl().classList.add('open');
-    document.getElementById('screen').style.marginTop = '46px';
-    // Masquer tous les onglets sauf réparations (admin voit uniquement ça)
-    document.querySelectorAll('.nav-tab').forEach(t => t.style.display = 'none');
+    // Forcer aucune classe validated sur le screen
     document.getElementById('screen').classList.remove('validated');
+    // Masquer la nav (admin ne navigue pas dans les onglets pilote)
+    document.querySelector('.nav').style.display = 'none';
+
+    // Déplacer le .screen DANS l'overlay (fix z-index)
+    const overlay = _apoEl();
+    const screen  = document.getElementById('screen');
+    _savedScreenParent = screen.parentNode;
+    _savedScreenNext   = screen.nextSibling;
+    overlay.appendChild(screen);
+    overlay.classList.add('open');
   } catch(e) { showToast('Erreur : ' + e.message); }
 }
 
 function closeAdminPilotOverlay() {
   _apoEl().classList.remove('open');
-  document.getElementById('screen').style.marginTop = '';
-  // Restaurer les onglets
-  document.querySelectorAll('.nav-tab').forEach(t => t.style.display = '');
+  // Remettre le .screen à sa place dans le DOM
+  const screen = document.getElementById('screen');
+  if (_savedScreenParent) {
+    _savedScreenParent.insertBefore(screen, _savedScreenNext);
+  }
+  screen.style.marginTop = '';
+  document.querySelector('.nav').style.display = '';
 
   // Restaurer le contexte admin
   AUTH.isAdmin = _savedIsAdmin;

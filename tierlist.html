@@ -1,0 +1,1214 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TFA — Tier List Véhicules</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;500;600;700&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0d0d;
+  --bg2: #141414;
+  --bg3: #1a1a1a;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.14);
+  --text: #e8e4dc;
+  --text2: #8a857a;
+  --text3: #4a4642;
+  --accent: #c8a96e;
+  --accent2: #e8c97e;
+  --red: #c0392b;
+  --orange: #c75a1a;
+  --yellow: #b8940a;
+  --green: #1e7a3a;
+  --blue: #1a5a8a;
+  --purple: #5a2a8a;
+  --gray: #4a4a4a;
+  --gtc-dot: #c8a96e;
+  --wsc-dot: #6eb4c8;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Barlow', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Grain overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.6;
+}
+
+/* Header */
+.header {
+  padding: 28px 32px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.header-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 48px;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.header-sub {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text2);
+  padding-bottom: 6px;
+}
+
+.header-badges {
+  display: flex;
+  gap: 8px;
+  padding-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  color: var(--text2);
+}
+
+.badge.accent { border-color: var(--accent); color: var(--accent); }
+
+/* Controls bar */
+.controls {
+  padding: 14px 32px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+}
+
+.btn {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.primary { border-color: var(--accent); color: var(--accent); }
+.btn.primary:hover { background: var(--accent); color: var(--bg); }
+
+.sep { width: 1px; height: 20px; background: var(--border); }
+
+.filter-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+
+.pill {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text3);
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.pill:hover { border-color: var(--border2); color: var(--text2); }
+.pill.active { border-color: var(--accent); color: var(--accent); background: rgba(200,169,110,0.08); }
+
+/* Layout */
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 24px 32px;
+}
+
+/* Tier rows */
+.tier-section {
+  margin-bottom: 20px;
+}
+
+.tier-section-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 10px;
+}
+
+.tier-row {
+  display: flex;
+  align-items: stretch;
+  min-height: 100px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  overflow: visible;
+  margin-bottom: 4px;
+  position: relative;
+}
+
+.tier-label-cell {
+  width: 64px;
+  min-width: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  position: relative;
+  border-right: 1px solid var(--border);
+  padding: 8px 4px;
+  transition: opacity 0.15s;
+}
+
+.tier-label-cell:hover { opacity: 0.8; }
+
+.tier-label-text {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  color: #fff;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+}
+
+.tier-remove-btn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.3);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+  transition: color 0.15s;
+}
+
+.tier-remove-btn:hover { color: rgba(255,255,255,0.8); }
+
+.tier-rename-input {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 26px;
+  width: 52px;
+  text-align: center;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 2px;
+  color: #fff;
+  outline: none;
+  padding: 2px;
+}
+
+.tier-cars-zone {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 12px;
+  align-content: flex-start;
+  min-height: 96px;
+  transition: background 0.15s;
+}
+
+.tier-cars-zone.drag-over {
+  background: rgba(200,169,110,0.06);
+  outline: 1px dashed rgba(200,169,110,0.35);
+  outline-offset: -4px;
+}
+
+.tier-empty-hint {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--text3);
+  align-self: center;
+  pointer-events: none;
+}
+
+/* Car card */
+.car-card {
+  width: 80px;
+  cursor: grab;
+  user-select: none;
+  position: relative;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+  flex-shrink: 0;
+}
+
+.car-card:hover {
+  transform: translateY(-3px) scale(1.04);
+  border-color: var(--border2);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  z-index: 10;
+}
+
+.car-card:active { cursor: grabbing; transform: scale(0.95); }
+.car-card.dragging { opacity: 0.3; transform: scale(0.9); }
+
+.car-card img {
+  width: 80px;
+  height: 50px;
+  object-fit: cover;
+  display: block;
+  background: #1a1a2e;
+}
+
+.car-card .car-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.03em;
+  color: var(--text2);
+  padding: 3px 4px;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.car-card .pack-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(0,0,0,0.8);
+}
+
+.car-card .year-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 8px;
+  color: rgba(255,255,255,0.7);
+  background: rgba(0,0,0,0.6);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+/* Pool */
+.pool-section {
+  margin-top: 8px;
+}
+
+.pool-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.pool-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  color: var(--text2);
+}
+
+.pool-count {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  color: var(--text3);
+}
+
+.pool-zone {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 14px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  min-height: 120px;
+}
+
+.pool-zone.drag-over {
+  background: rgba(255,255,255,0.02);
+  outline: 1px dashed var(--border2);
+  outline-offset: -4px;
+}
+
+/* Legend */
+.legend {
+  display: flex;
+  gap: 20px;
+  padding: 14px 32px;
+  border-top: 1px solid var(--border);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text3);
+  flex-wrap: wrap;
+}
+
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+.dmg-key { display: flex; align-items: center; gap: 5px; }
+.dmg-p { width: 10px; height: 10px; border-radius: 50%; background: #c0392b; }
+.dmg-s { width: 10px; height: 10px; border-radius: 50%; background: #e67e22; }
+.dmg-n { width: 10px; height: 10px; border-radius: 50%; background: #333; border: 1px solid #555; }
+
+/* Modal */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.82);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.modal-img {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  display: block;
+  background: #0d0f1a;
+}
+
+.modal-body { padding: 20px 24px 24px; }
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: rgba(0,0,0,0.6);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  width: 30px;
+  height: 30px;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  z-index: 10;
+}
+
+.modal-close:hover { background: rgba(255,255,255,0.1); }
+
+.modal-pack-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.modal-pack-tag {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 2px;
+  border: 1px solid;
+}
+
+.modal-pack-tag.gtc { color: var(--gtc-dot); border-color: var(--gtc-dot); }
+.modal-pack-tag.wsc { color: var(--wsc-dot); border-color: var(--wsc-dot); }
+
+.modal-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.modal-meta {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--text2);
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+
+.tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 16px;
+}
+
+.tag {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  color: var(--text2);
+}
+
+.specs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.spec-box {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 8px 10px;
+}
+
+.spec-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 4px;
+}
+
+.spec-value {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+.spec-unit {
+  font-size: 10px;
+  color: var(--text2);
+  font-weight: 400;
+}
+
+.layout-badge {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  background: rgba(200,169,110,0.1);
+  border: 1px solid rgba(200,169,110,0.3);
+  border-radius: 2px;
+  color: var(--accent);
+  display: inline-block;
+  margin-bottom: 14px;
+}
+
+.section-head {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dmg-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+}
+
+.dmg-table th {
+  text-align: left;
+  color: var(--text3);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 400;
+}
+
+.dmg-table td {
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+  font-size: 10px;
+}
+
+.dmg-table tr:last-child td { border-bottom: none; }
+
+.dmg-cell { display: flex; align-items: center; justify-content: center; }
+.dmg-circle {
+  width: 12px; height: 12px; border-radius: 50%;
+  display: inline-block;
+}
+.dmg-P { background: #c0392b; box-shadow: 0 0 6px rgba(192,57,43,0.5); }
+.dmg-S { background: #c87a1a; box-shadow: 0 0 4px rgba(200,120,26,0.4); }
+.dmg-0 { background: #222; border: 1px solid #333; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #444; }
+
+/* Add tier dialog */
+.add-tier-popup {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  padding: 20px 24px;
+  z-index: 600;
+  min-width: 260px;
+}
+
+.add-tier-popup.open { display: block; }
+.popup-overlay { display: none; position: fixed; inset: 0; z-index: 590; }
+.popup-overlay.open { display: block; }
+
+.popup-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+
+.popup-row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+.popup-label { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text2); min-width: 52px; }
+.popup-input {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px;
+  padding: 5px 10px;
+  border-radius: 2px;
+  outline: none;
+  width: 80px;
+}
+
+.popup-input:focus { border-color: var(--accent); }
+.color-swatches { display: flex; gap: 6px; flex-wrap: wrap; }
+.swatch {
+  width: 22px; height: 22px; border-radius: 2px; cursor: pointer;
+  border: 2px solid transparent; transition: border-color 0.12s;
+}
+.swatch:hover, .swatch.selected { border-color: #fff; }
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--bg2);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  padding: 8px 18px;
+  border-radius: 2px;
+  z-index: 700;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+
+@media (max-width: 640px) {
+  .header { padding: 18px 16px 14px; }
+  .main { padding: 16px; }
+  .controls { padding: 10px 16px; }
+  .legend { padding: 10px 16px; }
+  .header-title { font-size: 36px; }
+  .specs-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div class="header-title">TFA Tier List</div>
+    <div class="header-sub">Tour de France Auto — Sélection véhicules</div>
+  </div>
+  <div class="header-badges">
+    <span class="badge accent" id="classified-badge">0 / 54 classés</span>
+    <span class="badge">GTC60 v1.3</span>
+    <span class="badge">WSC60 v1.3</span>
+    <span class="badge">54 véhicules</span>
+  </div>
+</div>
+
+<!-- CONTROLS -->
+<div class="controls">
+  <button class="btn primary" onclick="openAddTier()">+ Tier</button>
+  <button class="btn" onclick="resetAll()">↺ Reset</button>
+  <button class="btn" onclick="exportTL()">⎘ Copier</button>
+  <div class="sep"></div>
+  <span class="filter-label">Filtre :</span>
+  <span class="pill active" onclick="setFilter('all',this)">Tous</span>
+  <span class="pill" onclick="setFilter('gtc',this)">GTC60</span>
+  <span class="pill" onclick="setFilter('wsc',this)">WSC60</span>
+  <span class="pill" onclick="setFilter('FRONT_ENGINE',this)">Moteur AV</span>
+  <span class="pill" onclick="setFilter('REAR_ENGINE',this)">Moteur AR</span>
+  <span class="pill" onclick="setFilter('MID_FRONT_RAD',this)">Mid / Rad AV</span>
+  <span class="pill" onclick="setFilter('MID_SIDE_RAD',this)">Mid / Rad Lat</span>
+  <span class="pill" onclick="setFilter('MID_LARGE',this)">Mid Large</span>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="tier-section">
+    <div class="tier-section-title">Tiers — glisser pour classer</div>
+    <div id="tiers-container"></div>
+  </div>
+
+  <div class="pool-section">
+    <div class="pool-header">
+      <div class="pool-title">Pool</div>
+      <div class="pool-count">— <span id="pool-count">54</span> véhicules non classés</div>
+    </div>
+    <div class="pool-zone" id="pool-zone"
+      ondragover="onDragOver(event)"
+      ondragleave="onDragLeave(event)"
+      ondrop="onDrop(event,'pool')">
+    </div>
+  </div>
+</div>
+
+<!-- LEGEND -->
+<div class="legend">
+  <div class="legend-item">
+    <span class="legend-dot" style="background:var(--gtc-dot)"></span>
+    <span>GTC60</span>
+  </div>
+  <div class="legend-item">
+    <span class="legend-dot" style="background:var(--wsc-dot)"></span>
+    <span>WSC60</span>
+  </div>
+  <div class="sep" style="background:rgba(255,255,255,0.06);width:1px;height:16px"></div>
+  <div class="dmg-key"><div class="dmg-p"></div> Zone Primaire (P)</div>
+  <div class="dmg-key"><div class="dmg-s"></div> Zone Secondaire (S)</div>
+  <div class="dmg-key"><div class="dmg-n"></div> Non exposé</div>
+  <div class="sep" style="background:rgba(255,255,255,0.06);width:1px;height:16px"></div>
+  <span style="color:var(--text3);font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:0.08em">Clic = fiche specs · Glisser = classer</span>
+</div>
+
+<!-- CAR SPEC MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <img class="modal-img" id="m-img" src="" alt="">
+    <div class="modal-body">
+      <div class="modal-pack-strip">
+        <span class="modal-pack-tag" id="m-pack-tag"></span>
+        <span class="layout-badge" id="m-layout"></span>
+      </div>
+      <div class="modal-title" id="m-title"></div>
+      <div class="modal-meta" id="m-meta"></div>
+      <div class="tags-row" id="m-tags"></div>
+      <div class="specs-grid" id="m-specs"></div>
+      <div class="section-head">Profil de dommages TFA — exposition par zone</div>
+      <table class="dmg-table" id="m-dmg"></table>
+    </div>
+  </div>
+</div>
+
+<!-- ADD TIER POPUP -->
+<div class="popup-overlay" id="popup-overlay" onclick="closeAddTier()"></div>
+<div class="add-tier-popup" id="add-tier-popup">
+  <div class="popup-title">Nouveau Tier</div>
+  <div class="popup-row">
+    <span class="popup-label">Label</span>
+    <input type="text" class="popup-input" id="new-tier-label" maxlength="4" placeholder="Ex: S" style="width:80px">
+  </div>
+  <div class="popup-row" style="align-items:flex-start">
+    <span class="popup-label">Couleur</span>
+    <div class="color-swatches" id="color-swatches"></div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:14px">
+    <button class="btn primary" onclick="confirmAddTier()">Créer</button>
+    <button class="btn" onclick="closeAddTier()">Annuler</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const CARS = [
+  {id:"ac_legends_gtc_ferrari_250_gto_8hlmc",name:"Ferrari 250 GTO",year:1963,pack:"gtc",layout:"FRONT_ENGINE",hp:302,weight:880,engine:"V12 3.0L",origin:"Italie",tags:["GT","Le Mans","Ferrari","Icône","Berlinetta"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Ferrari_250_GTO_%281962%29_%2814478452065%29.jpg/640px-Ferrari_250_GTO_%281962%29_%2814478452065%29.jpg"},
+  {id:"ac_legends_gtc_ferrari_250_gto_s2_8hlmc",name:"Ferrari 250 GTO S2",year:1964,pack:"gtc",layout:"FRONT_ENGINE",hp:302,weight:880,engine:"V12 3.0L",origin:"Italie",tags:["GT","Ferrari","Série II","Pininfarina"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Ferrari_250_GTO_%281962%29_%2814478452065%29.jpg/640px-Ferrari_250_GTO_%281962%29_%2814478452065%29.jpg"},
+  {id:"ac_legends_gtc_ferrari_250_gt_swb_8hlmc",name:"Ferrari 250 GT SWB",year:1961,pack:"gtc",layout:"FRONT_ENGINE",hp:280,weight:870,engine:"V12 3.0L",origin:"Italie",tags:["GT","Ferrari","Short Wheelbase","Compétizione"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Ferrari_250_GT_SWB_-_Flickr_-_Andrew_Bone_%282%29.jpg/640px-Ferrari_250_GT_SWB_-_Flickr_-_Andrew_Bone_%282%29.jpg"},
+  {id:"ac_legends_gtc_ferrari_275_gtb_8hlmc",name:"Ferrari 275 GTB Comp.",year:1965,pack:"gtc",layout:"FRONT_ENGINE",hp:300,weight:900,engine:"V12 3.3L",origin:"Italie",tags:["GT","Ferrari","Berlinetta","6 Carbus"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Ferrari_275_GTB4.jpg/640px-Ferrari_275_GTB4.jpg"},
+  {id:"ac_legends_gtc_jaguar_etype_le_mans_8hlmc",name:"Jaguar E-type Le Mans",year:1962,pack:"gtc",layout:"FRONT_ENGINE",hp:290,weight:930,engine:"I6 3.8L",origin:"Royaume-Uni",tags:["GT","Jaguar","Le Mans","Cunningham"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Jaguar_E-Type_%28Euro%29_%E2%80%93_Frontansicht%2C_5._April_2012%2C_D%C3%BCsseldorf.jpg/640px-Jaguar_E-Type_%28Euro%29_%E2%80%93_Frontansicht%2C_5._April_2012%2C_D%C3%BCsseldorf.jpg"},
+  {id:"ac_legends_gtc_jaguar_etype_lm_8hlmc",name:"Jaguar E-type Lightweight",year:1963,pack:"gtc",layout:"FRONT_ENGINE",hp:344,weight:830,engine:"I6 3.8L alu",origin:"Royaume-Uni",tags:["GT","Jaguar","Lightweight","Le Mans","Alu block"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Jaguar_E-Type_%28Euro%29_%E2%80%93_Frontansicht%2C_5._April_2012%2C_D%C3%BCsseldorf.jpg/640px-Jaguar_E-Type_%28Euro%29_%E2%80%93_Frontansicht%2C_5._April_2012%2C_D%C3%BCsseldorf.jpg"},
+  {id:"ac_legends_gtc_porsche_911_swb_8hlmc",name:"Porsche 911 SWB",year:1969,pack:"gtc",layout:"REAR_ENGINE",hp:210,weight:780,engine:"Flat-6 2.0L",origin:"Allemagne",tags:["GT","Porsche","911R","SWB","Léger"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Porsche_911_Carrera_RS_2.7_touring_%281972%29.jpg/640px-Porsche_911_Carrera_RS_2.7_touring_%281972%29.jpg"},
+  {id:"ac_legends_gtc_shelby_mustang350_8hlmc",name:"Shelby Mustang GT350R",year:1966,pack:"gtc",layout:"FRONT_ENGINE",hp:360,weight:1070,engine:"V8 4.7L",origin:"USA",tags:["GT","Shelby","Ford","SCCA","B-Production"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/1965_Shelby_GT350_%28front%29.jpg/640px-1965_Shelby_GT350_%28front%29.jpg"},
+  {id:"ac_legends_gtc_elan_26r_8hlmc",name:"Lotus Elan 26R",year:1967,pack:"gtc",layout:"FRONT_ENGINE",hp:135,weight:580,engine:"I4 1.6L",origin:"Royaume-Uni",tags:["GT","Lotus","Léger","Small disp.","British"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Lotus_Elan_white_clr.jpg/640px-Lotus_Elan_white_clr.jpg"},
+  {id:"gadu_alfa_romeo_tz2_endurance",name:"Alfa TZ2 (GADU)",year:1965,pack:"gtc",layout:"REAR_ENGINE",hp:170,weight:620,engine:"I4 1.6L",origin:"Italie",tags:["GT","Alfa Romeo","Zagato","GADU","Léger"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Alfa_Romeo_Giulia_TZ2_%281965%29.jpg/640px-Alfa_Romeo_Giulia_TZ2_%281965%29.jpg"},
+  {id:"ac_legends_gtc_alfa_romeo_giulia_tz_8hlmc",name:"Alfa Romeo Giulia TZ",year:1963,pack:"gtc",layout:"FRONT_ENGINE",hp:160,weight:650,engine:"I4 1.6L",origin:"Italie",tags:["GT","Alfa Romeo","Zagato","Autodelta"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Alfa_Romeo_Giulia_TZ2_%281965%29.jpg/640px-Alfa_Romeo_Giulia_TZ2_%281965%29.jpg"},
+  {id:"ac_legends_gtc_alfa_romeo_tz2_8hlmc",name:"Alfa Romeo Giulia TZ2",year:1965,pack:"gtc",layout:"REAR_ENGINE",hp:170,weight:620,engine:"I4 1.6L",origin:"Italie",tags:["GT","Alfa Romeo","Zagato","Kamm tail","Léger"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Alfa_Romeo_Giulia_TZ2_%281965%29.jpg/640px-Alfa_Romeo_Giulia_TZ2_%281965%29.jpg"},
+  {id:"ac_legends_gtc_aston_martin_db4_zagato_8hlmc",name:"Aston Martin DB4 Zagato",year:1965,pack:"gtc",layout:"FRONT_ENGINE",hp:302,weight:1120,engine:"I6 3.7L",origin:"Royaume-Uni",tags:["GT","Aston Martin","Zagato","British","Superleggera"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Aston_Martin_DB4_GT_Zagato_-_Flickr_-_Alessandro_Prada.jpg/640px-Aston_Martin_DB4_GT_Zagato_-_Flickr_-_Alessandro_Prada.jpg"},
+  {id:"ac_legends_gtc_bizzarrini_gt5300_8hlmc",name:"Bizzarrini GT 5300",year:1965,pack:"gtc",layout:"FRONT_ENGINE",hp:365,weight:950,engine:"V8 5.3L",origin:"Italie",tags:["GT","Bizzarrini","Le Mans","V8 américain","Bertone"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Bizzarrini_5300_GT_Strada.jpg/640px-Bizzarrini_5300_GT_Strada.jpg"},
+  {id:"ac_legends_gtc_abarth_simca_2000_8hlmc",name:"Abarth Simca 2000GT",year:1964,pack:"gtc",layout:"REAR_ENGINE",hp:205,weight:580,engine:"I4 2.0L",origin:"Italie",tags:["GT","Abarth","Simca","Léger","Small disp."],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Abarth_2000_Sport_Spider_-_1969.jpg/640px-Abarth_2000_Sport_Spider_-_1969.jpg"},
+  {id:"ac_legends_gtc_chevrolet_corvette_327_8hlmc",name:"Chevrolet Corvette 327",year:1967,pack:"gtc",layout:"FRONT_ENGINE",hp:360,weight:1100,engine:"V8 5.4L",origin:"USA",tags:["GT","Chevrolet","Sting Ray","American V8"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Chevrolet_Corvette_C2_front.jpg/640px-Chevrolet_Corvette_C2_front.jpg"},
+  {id:"ac_legends_gtc_corvette_scca_8hlmc",name:"Corvette SCCA",year:1963,pack:"gtc",layout:"FRONT_ENGINE",hp:370,weight:1080,engine:"V8 5.4L",origin:"USA",tags:["GT","Chevrolet","SCCA","American V8","Duntov"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Chevrolet_Corvette_C2_front.jpg/640px-Chevrolet_Corvette_C2_front.jpg"},
+  {id:"ac_legends_gtc_shelby_cobra_289_8hlmc",name:"Shelby Cobra 289",year:1965,pack:"gtc",layout:"FRONT_ENGINE",hp:271,weight:870,engine:"V8 4.7L",origin:"USA",tags:["GT","Shelby","Cobra","Le Mans","British-American"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Shelby_Cobra_289_001.jpg/640px-Shelby_Cobra_289_001.jpg"},
+  {id:"ac_legends_gtc_shelby_cobra_289_hardtop_8hlmc",name:"Cobra 289 Hardtop",year:1963,pack:"gtc",layout:"FRONT_ENGINE",hp:271,weight:880,engine:"V8 4.7L",origin:"USA",tags:["GT","Shelby","Cobra","Hardtop","Le Mans","Aérodynamique"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Shelby_Cobra_289_001.jpg/640px-Shelby_Cobra_289_001.jpg"},
+  {id:"ac_legends_gtc_ginetta_g10_8hlmc",name:"Ginetta G10",year:1965,pack:"gtc",layout:"FRONT_ENGINE",hp:270,weight:730,engine:"V8 4.7L",origin:"Royaume-Uni",tags:["GT","Ginetta","British","Léger","GRP body"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Ginetta_G4_Oldtimer_GP_N%C3%BCrburgring_2014_1.jpg/640px-Ginetta_G4_Oldtimer_GP_N%C3%BCrburgring_2014_1.jpg"},
+  {id:"ac_legends_gtc_healey_3000_lw_8hlmc",name:"Austin Healey 3000 LW",year:1964,pack:"gtc",layout:"FRONT_ENGINE",hp:210,weight:860,engine:"I6 3.0L",origin:"Royaume-Uni",tags:["GT","Healey","British","Rallye","Lightweight"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/Austin-Healey_3000_Mk_III_-_Flickr_-_Alexandre_Pr%C3%A9vot_%281%29.jpg/640px-Austin-Healey_3000_Mk_III_-_Flickr_-_Alexandre_Pr%C3%A9vot_%281%29.jpg"},
+  {id:"ac_legends_gtc_mercedes_300sl_8hlmc",name:"Mercedes 300SL R",year:1955,pack:"gtc",layout:"FRONT_ENGINE",hp:310,weight:1060,engine:"I8 3.0L",origin:"Allemagne",tags:["GT","Mercedes","Gullwing","300SLR engine","Classique"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Mercedes-Benz_300_SL_%28W_198%29_silver.jpg/640px-Mercedes-Benz_300_SL_%28W_198%29_silver.jpg"},
+  {id:"ac_legends_gtc_porsche_904_gts_8hlmc",name:"Porsche 904/4 GTS",year:1964,pack:"gtc",layout:"REAR_ENGINE",hp:180,weight:650,engine:"Flat-4 2.0L",origin:"Allemagne",tags:["GT","Porsche","Homologué","GTS","Small disp."],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Porsche_904_-_Flickr_-_exfordy.jpg/640px-Porsche_904_-_Flickr_-_exfordy.jpg"},
+  {id:"ac_legends_gtc_porsche_904_6_8hlmc",name:"Porsche 904/6",year:1964,pack:"gtc",layout:"REAR_ENGINE",hp:210,weight:640,engine:"Flat-6 2.0L",origin:"Allemagne",tags:["GT","Porsche","Prototype","Flat-6","Small disp."],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Porsche_904_-_Flickr_-_exfordy.jpg/640px-Porsche_904_-_Flickr_-_exfordy.jpg"},
+  {id:"ac_legends_gtc_sunbeam_tiger_289_8hlmc",name:"Sunbeam Tiger MkII",year:1967,pack:"gtc",layout:"FRONT_ENGINE",hp:200,weight:960,engine:"V8 4.7L",origin:"Royaume-Uni",tags:["GT","Sunbeam","Shelby","British","V8 américain"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Sunbeam_Tiger_Mk2_-_Flickr_-_Alessandro_Prada.jpg/640px-Sunbeam_Tiger_Mk2_-_Flickr_-_Alessandro_Prada.jpg"},
+  {id:"ac_legends_gtc_toyota_2000gt_311s_8hlmc",name:"Toyota 2000GT 311S",year:1966,pack:"gtc",layout:"FRONT_ENGINE",hp:210,weight:780,engine:"I6 2.0L",origin:"Japon",tags:["GT","Toyota","Japonais","Prototype","TOSCO"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Toyota_2000GT_f1.jpg/640px-Toyota_2000GT_f1.jpg"},
+  {id:"tvr_griffith_200",name:"TVR Griffith 200",year:1963,pack:"gtc",layout:"FRONT_ENGINE",hp:271,weight:760,engine:"V8 4.7L",origin:"Royaume-Uni",tags:["GT","TVR","British","V8 américain","Léger"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/TVR_Griffith_200.jpg/640px-TVR_Griffith_200.jpg"},
+  {id:"wsc_legends_alfa_romeo_tipo_33",name:"Alfa Romeo Tipo 33",year:1967,pack:"wsc",layout:"REAR_ENGINE",hp:270,weight:590,engine:"V8 2.0L",origin:"Italie",tags:["Prototype","Alfa Romeo","Periscopica","Autodelta","Small disp."],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Alfa_33_Stradale_1967.jpg/640px-Alfa_33_Stradale_1967.jpg"},
+  {id:"wsc_legends_alpine_a210",name:"Alpine A210",year:1966,pack:"wsc",layout:"REAR_ENGINE",hp:140,weight:560,engine:"I4 1.3L Gordini",origin:"France",tags:["Prototype","Alpine","Renault","Le Mans","Small disp.","Français"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/Alpine_A210_-_Flickr_-_edvvc.jpg/640px-Alpine_A210_-_Flickr_-_edvvc.jpg"},
+  {id:"wsc_legends_alpine_a211",name:"Alpine A211",year:1967,pack:"wsc",layout:"REAR_ENGINE",hp:155,weight:570,engine:"I4 1.5L Gordini",origin:"France",tags:["Prototype","Alpine","Renault","Le Mans","Français"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/Alpine_A210_-_Flickr_-_edvvc.jpg/640px-Alpine_A210_-_Flickr_-_edvvc.jpg"},
+  {id:"wsc_legends_brabham_bt8",name:"Brabham BT8 Climax",year:1964,pack:"wsc",layout:"MID_FRONT_RAD",hp:195,weight:560,engine:"I4 2.7L Climax",origin:"Royaume-Uni",tags:["Prototype","Brabham","Open cockpit","Mid-engined","British"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Brabham_BT8_1963.jpg/640px-Brabham_BT8_1963.jpg"},
+  {id:"wsc_legends_chaparral_2d",name:"Chaparral 2D",year:1966,pack:"wsc",layout:"MID_SIDE_RAD",hp:500,weight:720,engine:"V8 5.4L Chev",origin:"USA",tags:["Prototype","Chaparral","Aile réglable","Can-Am","American"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Chaparral_2D.jpg/640px-Chaparral_2D.jpg"},
+  {id:"wsc_legends_chaparral_2f",name:"Chaparral 2F",year:1967,pack:"wsc",layout:"MID_LARGE",hp:550,weight:740,engine:"V8 7.0L Chev",origin:"USA",tags:["Prototype","Chaparral","DRS Wing","Can-Am","Iconic","American"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Chaparral_2F.jpg/640px-Chaparral_2F.jpg"},
+  {id:"wsc_legends_corvette_gs",name:"Corvette Grand Sport Coupé",year:1963,pack:"wsc",layout:"FRONT_ENGINE",hp:485,weight:910,engine:"V8 7.0L",origin:"USA",tags:["Prototype","Chevrolet","Grand Sport","American","Coupé"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Chevrolet_Corvette_C2_front.jpg/640px-Chevrolet_Corvette_C2_front.jpg"},
+  {id:"wsc_legends_corvette_gs_roadster",name:"Corvette Grand Sport Rdstr",year:1963,pack:"wsc",layout:"FRONT_ENGINE",hp:485,weight:900,engine:"V8 7.0L",origin:"USA",tags:["Prototype","Chevrolet","Grand Sport","Roadster","American"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Chevrolet_Corvette_C2_front.jpg/640px-Chevrolet_Corvette_C2_front.jpg"},
+  {id:"wsc_legends_chevron_gt",name:"Chevron GT",year:1967,pack:"wsc",layout:"MID_FRONT_RAD",hp:170,weight:560,engine:"I4 1.6L FVA",origin:"Royaume-Uni",tags:["Prototype","Chevron","Small disp.","British","Mid-engined"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Chevron_B8.jpg/640px-Chevron_B8.jpg"},
+  {id:"wsc_legends_ferrari_250lm",name:"Ferrari 250 LM",year:1964,pack:"wsc",layout:"MID_FRONT_RAD",hp:320,weight:820,engine:"V12 3.3L",origin:"Italie",tags:["Prototype","Ferrari","Le Mans","Vainqueur 1965","Mid-engined"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Ferrari_250_LM.jpg/640px-Ferrari_250_LM.jpg"},
+  {id:"wsc_legends_365p2_spyder",name:"Ferrari 275/330 P2 Spyder",year:1965,pack:"wsc",layout:"MID_SIDE_RAD",hp:420,weight:760,engine:"V12 4.0L",origin:"Italie",tags:["Prototype","Ferrari","P-series","Le Mans","Spyder"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Ferrari_330_P3_%281966%29.jpg/640px-Ferrari_330_P3_%281966%29.jpg"},
+  {id:"wsc_legends_ferrari_dino_206s",name:"Ferrari Dino 206S",year:1965,pack:"wsc",layout:"MID_FRONT_RAD",hp:218,weight:620,engine:"V6 2.0L",origin:"Italie",tags:["Prototype","Ferrari","Dino","Small disp.","Mid-engined"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Ferrari_Dino_206_SP.jpg/640px-Ferrari_Dino_206_SP.jpg"},
+  {id:"wsc_legends_ford_gt40_mk1",name:"Ford GT40 Mk I",year:1965,pack:"wsc",layout:"MID_SIDE_RAD",hp:380,weight:850,engine:"V8 4.7L",origin:"USA/UK",tags:["Prototype","Ford","Le Mans","Iconic","Mid-engined","GT class"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Ford_GT40_in_Le_Mans_1966.jpg/640px-Ford_GT40_in_Le_Mans_1966.jpg"},
+  {id:"wsc_legends_ford_gt_x1",name:"Ford GT X1 Roadster",year:1966,pack:"wsc",layout:"MID_SIDE_RAD",hp:450,weight:800,engine:"V8 7.0L",origin:"USA",tags:["Prototype","Ford","Roadster","Expérimental","McLaren","Can-Am"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Ford_GT40_in_Le_Mans_1966.jpg/640px-Ford_GT40_in_Le_Mans_1966.jpg"},
+  {id:"wsc_legends_ford_gt40_mk2",name:"Ford GT40 Mk II",year:1966,pack:"wsc",layout:"MID_SIDE_RAD",hp:485,weight:870,engine:"V8 7.0L",origin:"USA/UK",tags:["Prototype","Ford","Le Mans","Vainqueur 1966","Iconic"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Ford_GT40_in_Le_Mans_1966.jpg/640px-Ford_GT40_in_Le_Mans_1966.jpg"},
+  {id:"wsc_legends_ford_gt40_mk4",name:"Ford GT40 Mk IV",year:1967,pack:"wsc",layout:"MID_SIDE_RAD",hp:500,weight:870,engine:"V8 7.0L alu",origin:"USA",tags:["Prototype","Ford","Mk IV","Honeycomb monocoque","Le Mans"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Ford_GT40_in_Le_Mans_1966.jpg/640px-Ford_GT40_in_Le_Mans_1966.jpg"},
+  {id:"wsc_legends_iso_grifo_a3c",name:"Iso Grifo A3/C",year:1965,pack:"wsc",layout:"FRONT_ENGINE",hp:365,weight:950,engine:"V8 5.3L",origin:"Italie",tags:["GT","Iso","Bizzarrini","Le Mans","V8 américain"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Bizzarrini_5300_GT_Strada.jpg/640px-Bizzarrini_5300_GT_Strada.jpg"},
+  {id:"wsc_legends_jaguar_xj13",name:"Jaguar XJ13",year:1966,pack:"wsc",layout:"MID_SIDE_RAD",hp:502,weight:1040,engine:"V12 5.0L DOHC",origin:"Royaume-Uni",tags:["Prototype","Jaguar","V12","Jamais couru","Malcolm Sayer","British"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Jaguar_XJ13.jpg/640px-Jaguar_XJ13.jpg"},
+  {id:"wsc_legends_lola_t70_mk3gt",name:"Lola T70 Mk3 GT",year:1967,pack:"wsc",layout:"MID_SIDE_RAD",hp:450,weight:860,engine:"V8 5.0L",origin:"Royaume-Uni",tags:["Prototype","Lola","Can-Am","Le Mans","Mid-engined","British"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/7/76/Lola_T70_MkIIIB.jpg/640px-Lola_T70_MkIIIB.jpg"},
+  {id:"wsc_legends_lotus_47_gt",name:"Lotus 47 GT",year:1966,pack:"wsc",layout:"MID_FRONT_RAD",hp:165,weight:580,engine:"I4 1.6L Ford BDA",origin:"Royaume-Uni",tags:["GT","Lotus","Mid-engined","Léger","Small disp.","British"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Lotus_Elan_white_clr.jpg/640px-Lotus_Elan_white_clr.jpg"},
+  {id:"wsc_legends_maserati_tipo_151-3",name:"Maserati 151/3",year:1964,pack:"wsc",layout:"MID_LARGE",hp:420,weight:940,engine:"V8 5.0L",origin:"Italie",tags:["Prototype","Maserati","Gros V8","Le Mans","Mid-engined"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Maserati_Tipo_151.jpg/640px-Maserati_Tipo_151.jpg"},
+  {id:"wsc_legends_matra_m630_brm",name:"Matra MS630 BRM",year:1967,pack:"wsc",layout:"MID_SIDE_RAD",hp:310,weight:660,engine:"V12 3.0L BRM",origin:"France",tags:["Prototype","Matra","V12","Français","Le Mans","Mid-engined"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Matra_MS630_Le_Mans_1968.jpg/640px-Matra_MS630_Le_Mans_1968.jpg"},
+  {id:"wsc_legends_nissan_r380",name:"Nissan R380-II",year:1967,pack:"wsc",layout:"MID_FRONT_RAD",hp:220,weight:650,engine:"I6 2.0L GR-8",origin:"Japon",tags:["Prototype","Nissan","Prince","Japonais","Small disp."],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Nissan_R380.jpg/640px-Nissan_R380.jpg"},
+  {id:"wsc_legends_porsche_904_8",name:"Porsche 904/8",year:1964,pack:"wsc",layout:"REAR_ENGINE",hp:240,weight:640,engine:"Flat-8 2.0L",origin:"Allemagne",tags:["Prototype","Porsche","Expérimental","Small disp.","Flat-8"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Porsche_904_-_Flickr_-_exfordy.jpg/640px-Porsche_904_-_Flickr_-_exfordy.jpg"},
+  {id:"wsc_legends_porsche_906_carrera",name:"Porsche 906 Carrera",year:1966,pack:"wsc",layout:"REAR_ENGINE",hp:210,weight:640,engine:"Flat-6 2.0L",origin:"Allemagne",tags:["Prototype","Porsche","Homologué","Group 4","Small disp."],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Porsche_906_at_the_NART.jpg/640px-Porsche_906_at_the_NART.jpg"},
+  {id:"wsc_legends_porsche_906_lh",name:"Porsche 906 LH",year:1966,pack:"wsc",layout:"REAR_ENGINE",hp:210,weight:650,engine:"Flat-6 2.0L",origin:"Allemagne",tags:["Prototype","Porsche","Langheck","Le Mans","Small disp."],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Porsche_906_at_the_NART.jpg/640px-Porsche_906_at_the_NART.jpg"},
+  {id:"wsc_legends_porsche_910",name:"Porsche 910/6 & /8",year:1966,pack:"wsc",layout:"REAR_ENGINE",hp:230,weight:590,engine:"Flat-6/8 2.0L",origin:"Allemagne",tags:["Prototype","Porsche","Léger","13-inch wheels","Small disp."],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Porsche_910.jpg/640px-Porsche_910.jpg"},
+  {id:"wsc_legends_shelby_daytona",name:"Shelby Daytona Coupé",year:1964,pack:"wsc",layout:"FRONT_ENGINE",hp:385,weight:1020,engine:"V8 4.7L",origin:"USA",tags:["GT","Shelby","Daytona","Le Mans","Aérodynamique","Slipstream"],img:"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Shelby_Daytona_Coupe.jpg/640px-Shelby_Daytona_Coupe.jpg"}
+];
+
+const DMG = {
+  "ac_legends_gtc_ferrari_250_gto_8hlmc":{"AVANT":{ref:1,dir:1,tra:0,sus:1,cha:.35},"ARRIERE":{ref:0,dir:0,tra:1,sus:1,cha:.35},"LATERAL_G":{ref:0,dir:.35,tra:0,sus:1,cha:1},"LATERAL_D":{ref:0,dir:.35,tra:0,sus:1,cha:1},"AERIEN":{ref:.35,dir:.35,tra:.35,sus:1,cha:1}},
+  "ac_legends_gtc_ferrari_250_gto_s2_8hlmc":{"AVANT":{ref:1,dir:1,tra:0,sus:1,cha:.35},"ARRIERE":{ref:0,dir:0,tra:1,sus:1,cha:.35},"LATERAL_G":{ref:0,dir:.35,tra:0,sus:1,cha:1},"LATERAL_D":{ref:0,dir:.35,tra:0,sus:1,cha:1},"AERIEN":{ref:.35,dir:.35,tra:.35,sus:1,cha:1}},
+  "ac_legends_gtc_porsche_911_swb_8hlmc":{"AVANT":{ref:0,dir:1,tra:0,sus:1,cha:1},"ARRIERE":{ref:1,dir:0,tra:1,sus:1,cha:1},"LATERAL_G":{ref:.35,dir:.35,tra:.35,sus:1,cha:1},"LATERAL_D":{ref:.35,dir:.35,tra:.35,sus:1,cha:1},"AERIEN":{ref:1,dir:.35,tra:1,sus:1,cha:1}},
+  "wsc_legends_chaparral_2f":{"AVANT":{ref:0,dir:1,tra:0,sus:1,cha:1},"ARRIERE":{ref:1,dir:0,tra:1,sus:1,cha:1},"LATERAL_G":{ref:1,dir:.35,tra:.35,sus:1,cha:1},"LATERAL_D":{ref:1,dir:.35,tra:.35,sus:1,cha:1},"AERIEN":{ref:1,dir:.35,tra:1,sus:1,cha:1}},
+  "wsc_legends_ford_gt40_mk1":{"AVANT":{ref:1,dir:1,tra:0,sus:1,cha:.35},"ARRIERE":{ref:1,dir:0,tra:1,sus:1,cha:1},"LATERAL_G":{ref:.35,dir:.35,tra:0,sus:1,cha:1},"LATERAL_D":{ref:.35,dir:.35,tra:0,sus:1,cha:1},"AERIEN":{ref:.35,dir:.35,tra:1,sus:1,cha:1}},
+  "wsc_legends_ford_gt40_mk2":{"AVANT":{ref:1,dir:1,tra:0,sus:1,cha:.35},"ARRIERE":{ref:1,dir:0,tra:1,sus:1,cha:1},"LATERAL_G":{ref:.35,dir:.35,tra:0,sus:1,cha:1},"LATERAL_D":{ref:.35,dir:.35,tra:0,sus:1,cha:1},"AERIEN":{ref:.35,dir:.35,tra:1,sus:1,cha:1}},
+  "wsc_legends_ferrari_250lm":{"AVANT":{ref:1,dir:1,tra:0,sus:1,cha:.35},"ARRIERE":{ref:1,dir:0,tra:1,sus:1,cha:1},"LATERAL_G":{ref:.35,dir:.35,tra:.35,sus:1,cha:1},"LATERAL_D":{ref:.35,dir:.35,tra:.35,sus:1,cha:1},"AERIEN":{ref:1,dir:.35,tra:1,sus:1,cha:1}},
+  "wsc_legends_alpine_a210":{"AVANT":{ref:0,dir:1,tra:0,sus:1,cha:1},"ARRIERE":{ref:1,dir:0,tra:1,sus:1,cha:1},"LATERAL_G":{ref:.35,dir:.35,tra:.35,sus:1,cha:1},"LATERAL_D":{ref:.35,dir:.35,tra:.35,sus:1,cha:1},"AERIEN":{ref:1,dir:1,tra:1,sus:1,cha:1}},
+  "wsc_legends_alpine_a211":{"AVANT":{ref:0,dir:1,tra:0,sus:1,cha:1},"ARRIERE":{ref:1,dir:0,tra:1,sus:1,cha:1},"LATERAL_G":{ref:.35,dir:.35,tra:.35,sus:1,cha:1},"LATERAL_D":{ref:.35,dir:.35,tra:.35,sus:1,cha:1},"AERIEN":{ref:1,dir:1,tra:1,sus:1,cha:1}}
+};
+
+const FRONT_DMG = {"AVANT":{ref:1,dir:1,tra:0,sus:1,cha:.35},"ARRIERE":{ref:0,dir:0,tra:1,sus:1,cha:.35},"LATERAL_G":{ref:0,dir:.35,tra:0,sus:1,cha:1},"LATERAL_D":{ref:0,dir:.35,tra:0,sus:1,cha:1},"AERIEN":{ref:.35,dir:.35,tra:.35,sus:1,cha:1}};
+const REAR_DMG  = {"AVANT":{ref:0,dir:1,tra:0,sus:1,cha:1},"ARRIERE":{ref:1,dir:0,tra:1,sus:1,cha:1},"LATERAL_G":{ref:.35,dir:.35,tra:.35,sus:1,cha:1},"LATERAL_D":{ref:.35,dir:.35,tra:.35,sus:1,cha:1},"AERIEN":{ref:1,dir:.35,tra:1,sus:1,cha:1}};
+const MID_DMG   = {"AVANT":{ref:1,dir:1,tra:0,sus:1,cha:.35},"ARRIERE":{ref:1,dir:0,tra:1,sus:1,cha:1},"LATERAL_G":{ref:.35,dir:.35,tra:.35,sus:1,cha:1},"LATERAL_D":{ref:.35,dir:.35,tra:.35,sus:1,cha:1},"AERIEN":{ref:1,dir:.35,tra:1,sus:1,cha:1}};
+
+function getDmg(car) {
+  if (DMG[car.id]) return DMG[car.id];
+  if (car.layout === 'FRONT_ENGINE') return FRONT_DMG;
+  if (car.layout === 'REAR_ENGINE') return REAR_DMG;
+  return MID_DMG;
+}
+
+const ACSM = 'https://acsm.revivalseries.fr';
+
+// Preview : Wikipedia immédiat + tentative ACSM en arrière-plan
+function tryAcsmPreview(imgEl, carId) {
+  const ids = [carId, carId.replace(/_8hlmc$/, '')];
+  const skins = ['default','01','1','0','02','2','03','3','04','4','05','5'];
+  const combos = [];
+  ids.forEach(id => skins.forEach(s => combos.push({id, s})));
+  let i = 0;
+  function tryNext() {
+    if (i >= combos.length) return;
+    const {id, s} = combos[i++];
+    const url = `${ACSM}/content/cars/${id}/skins/${s}/preview.jpg`;
+    const t = new Image();
+    t.onload = () => { imgEl.src = url; imgEl.style.objectFit = 'cover'; };
+    t.onerror = tryNext;
+    t.src = url;
+  }
+  tryNext();
+}
+
+const COLORS = ['#c0392b','#c75a1a','#a07b0a','#1e7a3a','#1a5a8a','#5a2a8a','#3a6a6a','#7a3a3a','#4a4a4a'];
+const TIER_DEFAULTS = [
+  {label:'S',color:'#c0392b'},{label:'A',color:'#c75a1a'},{label:'B',color:'#a07b0a'},
+  {label:'C',color:'#1e7a3a'},{label:'D',color:'#1a5a8a'}
+];
+
+let tiers = TIER_DEFAULTS.map((t,i) => ({...t, id:'t'+i, cars:[]}));
+let pool = CARS.map(c => c.id);
+let filter = 'all';
+let dragId = null;
+let selColor = COLORS[0];
+let colorIdx = 0;
+
+function getFilteredPool() {
+  const ids = new Set(tiers.flatMap(t => t.cars));
+  const visible = CARS.filter(c => !ids.has(c.id) && matchFilter(c));
+  return visible;
+}
+
+function matchFilter(car) {
+  if (filter === 'all') return true;
+  if (filter === 'gtc') return car.pack === 'gtc';
+  if (filter === 'wsc') return car.pack === 'wsc';
+  return car.layout === filter;
+}
+
+function setFilter(f, el) {
+  filter = f;
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  renderPool();
+}
+
+function render() { renderTiers(); renderPool(); updateCounts(); }
+
+function renderTiers() {
+  const c = document.getElementById('tiers-container');
+  c.innerHTML = '';
+  tiers.forEach(tier => {
+    const row = document.createElement('div');
+    row.className = 'tier-row';
+
+    const lc = document.createElement('div');
+    lc.className = 'tier-label-cell';
+    lc.style.background = tier.color;
+    lc.innerHTML = `<span class="tier-label-text" id="lbl_${tier.id}">${tier.label}</span>
+      <button class="tier-remove-btn" onclick="event.stopPropagation();removeTier('${tier.id}')" title="Supprimer">✕</button>`;
+    lc.addEventListener('click', () => startRename(tier.id));
+    row.appendChild(lc);
+
+    const zone = document.createElement('div');
+    zone.className = 'tier-cars-zone';
+    zone.id = 'zone_' + tier.id;
+    zone.addEventListener('dragover', onDragOver);
+    zone.addEventListener('dragleave', onDragLeave);
+    zone.addEventListener('drop', e => onDrop(e, tier.id));
+
+    if (tier.cars.length === 0) {
+      const hint = document.createElement('span');
+      hint.className = 'tier-empty-hint';
+      hint.textContent = 'Glisser des voitures ici';
+      zone.appendChild(hint);
+    } else {
+      tier.cars.forEach(cid => {
+        const car = CARS.find(c => c.id === cid);
+        if (car) zone.appendChild(makeCard(car));
+      });
+    }
+    row.appendChild(zone);
+    c.appendChild(row);
+  });
+}
+
+function renderPool() {
+  const zone = document.getElementById('pool-zone');
+  zone.innerHTML = '';
+  const visible = getFilteredPool();
+  if (visible.length === 0) {
+    zone.innerHTML = '<span class="tier-empty-hint" style="align-self:center">Toutes les voitures sont classées !</span>';
+  } else {
+    visible.forEach(car => zone.appendChild(makeCard(car)));
+  }
+}
+
+function makeCard(car) {
+  const d = document.createElement('div');
+  d.className = 'car-card';
+  d.setAttribute('draggable', 'true');
+  d.dataset.id = car.id;
+  const dot = car.pack === 'gtc' ? 'var(--gtc-dot)' : 'var(--wsc-dot)';
+  const col = car.pack === 'gtc' ? '%23c8a96e' : '%236eb4c8';
+  const initials = car.name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+  const fallback = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='50'%3E%3Crect width='80' height='50' fill='%230d0f1a'/%3E%3Ctext x='40' y='31' text-anchor='middle' font-size='15' font-family='sans-serif' fill='${col}' font-weight='bold'%3E${encodeURIComponent(initials)}%3C/text%3E%3C/svg%3E`;
+  d.innerHTML = `
+    <img src="${car.img || fallback}" alt="${car.name}" style="object-fit:cover">
+    <span class="pack-dot" style="background:${dot}"></span>
+    <span class="year-badge">${car.year}</span>
+    <div class="car-name">${car.name}</div>
+  `;
+  const imgEl = d.querySelector('img');
+  tryAcsmPreview(imgEl, car.id);
+  d.addEventListener('dragstart', e => {
+    dragId = car.id;
+    d.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', car.id);
+  });
+  d.addEventListener('dragend', () => { d.classList.remove('dragging'); dragId = null; });
+  d.addEventListener('click', () => openModal(car));
+  return d;
+}
+
+function onDragOver(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+
+function onDragLeave(e) {
+  if (!e.currentTarget.contains(e.relatedTarget)) {
+    e.currentTarget.classList.remove('drag-over');
+  }
+}
+
+function onDrop(e, destId) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const cid = dragId || e.dataTransfer.getData('text/plain');
+  if (!cid) return;
+  removeFromAll(cid);
+  if (destId === 'pool') {
+    // just removed, pool is recomputed
+  } else {
+    const tier = tiers.find(t => t.id === destId);
+    if (tier && !tier.cars.includes(cid)) tier.cars.push(cid);
+  }
+  render();
+}
+
+document.getElementById('pool-zone').addEventListener('dragover', onDragOver);
+document.getElementById('pool-zone').addEventListener('dragleave', onDragLeave);
+document.getElementById('pool-zone').addEventListener('drop', e => onDrop(e, 'pool'));
+
+function removeFromAll(cid) {
+  tiers.forEach(t => { t.cars = t.cars.filter(id => id !== cid); });
+}
+
+function removeTier(tid) {
+  tiers = tiers.filter(t => t.id !== tid);
+  render();
+}
+
+function startRename(tid) {
+  const lbl = document.getElementById('lbl_' + tid);
+  if (!lbl) return;
+  const orig = lbl.textContent;
+  const inp = document.createElement('input');
+  inp.className = 'tier-rename-input';
+  inp.value = orig;
+  inp.maxLength = 4;
+  inp.onclick = e => e.stopPropagation();
+  lbl.replaceWith(inp);
+  inp.focus(); inp.select();
+  const save = () => {
+    const tier = tiers.find(t => t.id === tid);
+    if (tier) tier.label = (inp.value.trim() || orig);
+    const s = document.createElement('span');
+    s.className = 'tier-label-text';
+    s.id = 'lbl_' + tid;
+    s.textContent = tier.label;
+    inp.replaceWith(s);
+  };
+  inp.addEventListener('blur', save);
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); save(); } });
+}
+
+function updateCounts() {
+  const classified = tiers.reduce((n, t) => n + t.cars.length, 0);
+  document.getElementById('classified-badge').textContent = `${classified} / ${CARS.length} classés`;
+  const poolIds = new Set(tiers.flatMap(t => t.cars));
+  document.getElementById('pool-count').textContent = CARS.length - poolIds.size;
+}
+
+function resetAll() {
+  tiers = TIER_DEFAULTS.map((t, i) => ({...t, id: 't' + i, cars: []}));
+  render();
+  showToast('Tier list réinitialisée');
+}
+
+function exportTL() {
+  let out = '=== TFA TIER LIST ===\n\n';
+  tiers.forEach(tier => {
+    if (tier.cars.length) {
+      out += `[${tier.label}]\n`;
+      tier.cars.forEach(cid => {
+        const car = CARS.find(c => c.id === cid);
+        if (car) out += `  · ${car.name} (${car.year}) — ${car.pack.toUpperCase()}60\n`;
+      });
+      out += '\n';
+    }
+  });
+  const poolIds = new Set(tiers.flatMap(t => t.cars));
+  const unclassified = CARS.filter(c => !poolIds.has(c.id));
+  if (unclassified.length) {
+    out += `[Non classés: ${unclassified.length}]\n`;
+    unclassified.forEach(c => out += `  · ${c.name}\n`);
+  }
+  navigator.clipboard.writeText(out).then(() => showToast('Tier list copiée dans le presse-papiers !'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+/* ADD TIER */
+function openAddTier() {
+  const swatches = document.getElementById('color-swatches');
+  swatches.innerHTML = '';
+  COLORS.forEach(c => {
+    const s = document.createElement('div');
+    s.className = 'swatch' + (c === selColor ? ' selected' : '');
+    s.style.background = c;
+    s.onclick = () => { selColor = c; document.querySelectorAll('.swatch').forEach(x => x.classList.remove('selected')); s.classList.add('selected'); };
+    swatches.appendChild(s);
+  });
+  const letters = 'FGHIJKLMNOPQRSTUVWXYZ';
+  document.getElementById('new-tier-label').value = letters[tiers.length % letters.length];
+  document.getElementById('add-tier-popup').classList.add('open');
+  document.getElementById('popup-overlay').classList.add('open');
+  document.getElementById('new-tier-label').focus();
+}
+
+function closeAddTier() {
+  document.getElementById('add-tier-popup').classList.remove('open');
+  document.getElementById('popup-overlay').classList.remove('open');
+}
+
+function confirmAddTier() {
+  const label = document.getElementById('new-tier-label').value.trim() || 'X';
+  tiers.push({ label, color: selColor, id: 't' + Date.now(), cars: [] });
+  colorIdx = (colorIdx + 1) % COLORS.length;
+  selColor = COLORS[colorIdx];
+  closeAddTier();
+  renderTiers();
+  updateCounts();
+}
+
+document.getElementById('new-tier-label').addEventListener('keydown', e => { if (e.key === 'Enter') confirmAddTier(); });
+
+/* MODAL */
+function openModal(car) {
+  const dmg = getDmg(car);
+  const mImg = document.getElementById('m-img');
+  mImg.alt = car.name;
+  const col = car.pack === 'gtc' ? '%23c8a96e' : '%236eb4c8';
+  mImg.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='220'%3E%3Crect width='520' height='220' fill='%230d0f1a'/%3E%3Ctext x='260' y='118' text-anchor='middle' font-size='32' font-family='sans-serif' fill='${col}' font-weight='bold'%3E${encodeURIComponent(car.name)}%3C/text%3E%3C/svg%3E`;
+  tryAcsmPreview(mImg, car.id);
+
+  const ptag = document.getElementById('m-pack-tag');
+  ptag.textContent = car.pack.toUpperCase() + '60';
+  ptag.className = 'modal-pack-tag ' + car.pack;
+
+  const layoutMap = { FRONT_ENGINE:'Moteur Avant', REAR_ENGINE:'Moteur Arrière', MID_FRONT_RAD:'Mid — Rad AV', MID_SIDE_RAD:'Mid — Rad Latéraux', MID_LARGE:'Mid Large' };
+  document.getElementById('m-layout').textContent = layoutMap[car.layout] || car.layout;
+  document.getElementById('m-title').textContent = car.name;
+  document.getElementById('m-meta').textContent = `${car.year} · ${car.origin} · ${car.id}`;
+  document.getElementById('m-tags').innerHTML = car.tags.map(t => `<span class="tag">${t}</span>`).join('');
+
+  const pp = (car.hp / car.weight * 100).toFixed(1);
+  document.getElementById('m-specs').innerHTML = `
+    <div class="spec-box"><div class="spec-label">Puissance</div><div class="spec-value">${car.hp}<span class="spec-unit"> ch</span></div></div>
+    <div class="spec-box"><div class="spec-label">Poids</div><div class="spec-value">${car.weight}<span class="spec-unit"> kg</span></div></div>
+    <div class="spec-box"><div class="spec-label">Moteur</div><div class="spec-value" style="font-size:12px;letter-spacing:0">${car.engine}</div></div>
+    <div class="spec-box"><div class="spec-label">Ratio P/P</div><div class="spec-value">${pp}</div></div>
+  `;
+
+  const zones = ['AVANT','ARRIERE','LATERAL_G','LATERAL_D','AERIEN'];
+  const comps = [{k:'ref',n:'🌡 Refroid.'},{k:'dir',n:'🎮 Direction'},{k:'tra',n:'⚙ Transmis.'},{k:'sus',n:'🔧 Suspens.'},{k:'cha',n:'🛡 Châssis'}];
+  let html = `<thead><tr><th>Zone</th>${comps.map(c=>`<th style="text-align:center">${c.n}</th>`).join('')}</tr></thead><tbody>`;
+  const zoneNames = { AVANT:'Avant', ARRIERE:'Arrière', LATERAL_G:'Lat. Gauche', LATERAL_D:'Lat. Droite', AERIEN:'Aérien' };
+  zones.forEach(z => {
+    const row = dmg[z] || {};
+    html += `<tr><td style="font-weight:500;color:var(--text)">${zoneNames[z]}</td>`;
+    comps.forEach(c => {
+      const v = row[c.k] ?? 0;
+      const cls = v >= 1 ? 'dmg-P' : v > 0 ? 'dmg-S' : 'dmg-0';
+      const tip = v >= 1 ? 'Primaire (P)' : v > 0 ? 'Secondaire (S)' : 'Non exposé';
+      html += `<td><div class="dmg-cell"><span class="dmg-circle ${cls}" title="${tip}"></span></div></td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  document.getElementById('m-dmg').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeModal(); closeAddTier(); }
+});
+
+render();
+</script>
+</body>
+</html>

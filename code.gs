@@ -345,6 +345,14 @@ function doPost(e) {
       body.validated
     ));
   });
+  if (action === 'admin_set_handicap')    return withAdminToken(e, function() {
+    return jsonResponse(adminSetHandicap(
+      body.driver_guid, body.ballast_kg, body.restrictor
+    ));
+  });
+  if (action === 'get_general_standings') return withAdminToken(e, function() {
+    return jsonResponse(getGeneralStandings());
+  });
   return jsonResponse({ error: 'unknown_action' });
 }
 
@@ -1733,6 +1741,71 @@ function purgeDatabase() {
   });
 
   return { ok: true, purged: purged };
+}
+
+// ──────────────────────────────────────────────────────────────
+// ADMIN — SET HANDICAP MANUEL (override direct ballast/restrictor)
+// ──────────────────────────────────────────────────────────────
+
+function adminSetHandicap(guid, ballast, restrictor) {
+  var dsSheet  = getSheet('driver_state');
+  var dsData   = dsSheet.getDataRange().getValues();
+  var dsHeaders= dsData[0];
+  var guidIdx  = dsHeaders.indexOf('driver_guid');
+  var balIdx   = dsHeaders.indexOf('ballast_kg');
+  var resIdx   = dsHeaders.indexOf('restrictor');
+  var updIdx   = dsHeaders.indexOf('last_updated');
+
+  for (var i = 1; i < dsData.length; i++) {
+    if (String(dsData[i][guidIdx]) === String(guid)) {
+      var row = i + 1;
+      dsSheet.getRange(row, balIdx + 1).setValue(Math.round(Number(ballast) || 0));
+      dsSheet.getRange(row, resIdx + 1).setValue(Math.round(Number(restrictor) || 0));
+      dsSheet.getRange(row, updIdx + 1).setValue(new Date().toISOString());
+      return { ok: true };
+    }
+  }
+  throw new Error('driver_not_found');
+}
+
+// ──────────────────────────────────────────────────────────────
+// ADMIN — CLASSEMENT GÉNÉRAL (cumul des temps par étape)
+// ──────────────────────────────────────────────────────────────
+
+function getGeneralStandings() {
+  var srSheet = getSheet('stage_results');
+  if (!srSheet) return { ok: true, standings: [] };
+  var srData   = srSheet.getDataRange().getValues();
+  var srH      = srData[0];
+  var guidIdx  = srH.indexOf('driver_guid');
+  var nameIdx  = srH.indexOf('driver_name');
+  var lapIdx   = srH.indexOf('best_lap_ms');
+  var evIdx    = srH.indexOf('event_index');
+  var posIdx   = srH.indexOf('position');
+
+  // Cumul par pilote : somme des best laps sur toutes les étapes
+  var cumul = {}; // guid → { name, total_ms, events, positions }
+  for (var i = 1; i < srData.length; i++) {
+    var row  = srData[i];
+    var guid = String(row[guidIdx] || '');
+    var name = String(row[nameIdx] || '');
+    var lap  = Number(row[lapIdx]) || 0;
+    var ev   = Number(row[evIdx]);
+    var pos  = Number(row[posIdx]) || 99;
+    if (!guid || !lap) continue;
+    if (!cumul[guid]) cumul[guid] = { name: name, total_ms: 0, events: 0, best_pos: 99 };
+    cumul[guid].total_ms += lap;
+    cumul[guid].events++;
+    if (pos < cumul[guid].best_pos) cumul[guid].best_pos = pos;
+  }
+
+  var standings = Object.keys(cumul).map(function(guid) {
+    return { driver_guid: guid, driver_name: cumul[guid].name,
+             total_ms: cumul[guid].total_ms, events: cumul[guid].events,
+             best_pos: cumul[guid].best_pos };
+  }).sort(function(a, b) { return a.total_ms - b.total_ms; });
+
+  return { ok: true, standings: standings };
 }
 
 // ──────────────────────────────────────────────────────────────

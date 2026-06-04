@@ -1365,28 +1365,35 @@ function renderStandings() {
     });
   }
 
-  // ── Classement général (ballast/restrictor depuis driver_state via admin_overview) ──
+  // ── Classement général par cumul de temps ──
   const genBody = document.getElementById('standings-general-body');
-  genBody.innerHTML = '';
-  // Utilise ADMIN_DATA si disponible (admin), sinon stage_results pour pilotes
-  const gen = (ADMIN_DATA && ADMIN_DATA.drivers) ? ADMIN_DATA.drivers : [];
-  if (!gen.length) {
-    genBody.innerHTML = `<tr><td colspan="5" class="standings-empty">${LANG==='en'?'No general standings available.':'Aucun classement général disponible.'}</td></tr>`;
-  } else {
-    const sorted = [...gen].sort((a,b) => (a.ballast_kg||0) - (b.ballast_kg||0));
-    sorted.forEach((r, i) => {
-      const pos  = i + 1;
-      const pc   = pos===1?'p1':pos===2?'p2':pos===3?'p3':'';
-      const isMe = String(r.driver_guid) === String(AUTH.steamId);
-      genBody.innerHTML += `<tr class="${isMe?'me':''}">
-        <td><span class="pos-badge ${pc}">${pos}</span></td>
-        <td>${r.driver_name || '—'}</td>
-        <td class="bal-cell">${r.ballast_kg > 0 ? '+'+r.ballast_kg+' kg' : '—'}</td>
-        <td class="res-cell">${r.restrictor > 0 ? r.restrictor : '—'}</td>
-        <td>${r.repaired_count||0}/${r.damaged_count||0}</td>
-      </tr>`;
+  genBody.innerHTML = `<tr><td colspan="5" class="standings-empty" style="font-style:italic">Chargement…</td></tr>`;
+  gasGet('get_general_standings')
+    .then(function(res) {
+      genBody.innerHTML = '';
+      const standings = res.standings || [];
+      if (!standings.length) {
+        genBody.innerHTML = `<tr><td colspan="5" class="standings-empty">${LANG==='en'?'No general standings.':'Aucun classement disponible.'}</td></tr>`;
+        return;
+      }
+      const best = standings[0].total_ms;
+      standings.forEach(function(r, i) {
+        const pos  = i + 1;
+        const pc   = pos===1?'p1':pos===2?'p2':pos===3?'p3':'';
+        const isMe = String(r.driver_guid) === String(AUTH.steamId);
+        const gap  = i === 0 ? '—' : '+' + msToTime(r.total_ms - best);
+        genBody.innerHTML += `<tr class="${isMe?'me':''}">
+          <td><span class="pos-badge ${pc}">${pos}</span></td>
+          <td>${r.driver_name || '—'}</td>
+          <td>${msToTime(r.total_ms)}</td>
+          <td style="color:var(--text-dim)">${gap}</td>
+          <td style="color:var(--text-dim);font-size:11px">${r.events} ét.</td>
+        </tr>`;
+      });
+    })
+    .catch(function() {
+      genBody.innerHTML = `<tr><td colspan="5" class="standings-empty">Non disponible</td></tr>`;
     });
-  }
 }
 
 /* ════════════════════════════════════
@@ -1551,8 +1558,8 @@ async function quitAndSave() {
   }
   STATE.validated = true;
   document.getElementById('screen').classList.add('validated');
-  showToast(t('toast_saved_quit'));
-  setTimeout(() => { window.close(); }, 1400);
+  // Déclenche la même séquence que le bouton Fermer
+  doExit();
 }
 
 /* ════════════════════════════════════
@@ -1820,6 +1827,19 @@ function adminRender(data) {
             ${d.validated ? '🔓 Dé-valider' : '🔒 Valider'}
           </button>
         </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+          <span style="font-size:10px;color:var(--text-dim);letter-spacing:0.08em;text-transform:uppercase;">Handicap manuel</span>
+          <label style="font-size:10px;color:var(--text-dim)">Ballast</label>
+          <input type="number" min="0" max="40" step="1" value="${d.ballast_kg||0}"
+            id="bal-${d.driver_guid}"
+            style="width:55px;background:var(--bg-panel);border:1px solid var(--border-l);color:var(--yellow);font-family:'Barlow Condensed',sans-serif;font-size:13px;padding:3px 6px;text-align:center;"/>
+          <label style="font-size:10px;color:var(--text-dim)">kg &nbsp; Restrictor</label>
+          <input type="number" min="0" max="12" step="1" value="${d.restrictor||0}"
+            id="res-${d.driver_guid}"
+            style="width:45px;background:var(--bg-panel);border:1px solid var(--border-l);color:var(--red);font-family:'Barlow Condensed',sans-serif;font-size:13px;padding:3px 6px;text-align:center;"/>
+          <button class="btn" style="padding:3px 10px;font-size:10px;border-color:var(--cyan);color:var(--cyan)"
+            onclick="adminSaveHandicap('${d.driver_guid}')">💾 Appliquer</button>
+        </div>
         <div class="admin-chips" id="admin-chips-${d.driver_guid}">
           ${(d.components||[]).length === 0
             ? '<span style="color:var(--text-dim);font-size:11px;font-style:italic">Aucun composant enregistré</span>'
@@ -1856,6 +1876,17 @@ async function adminPurgeAll() {
     showToast(`BDD purgée : ${(data.purged || []).join(', ')}`);
     await adminRefresh();
   } catch(e) { showToast('Erreur purge : ' + e.message); }
+}
+
+async function adminSaveHandicap(guid) {
+  const bal = parseInt(document.getElementById('bal-' + guid).value) || 0;
+  const res = parseInt(document.getElementById('res-' + guid).value) || 0;
+  try {
+    const data = await gasPost('admin_set_handicap', { driver_guid: guid, ballast_kg: bal, restrictor: res });
+    if (data.error) throw new Error(data.error);
+    showToast(`Handicap appliqué : +${bal} kg / R:${res}`);
+    await adminRefresh();
+  } catch(e) { showToast('Erreur : ' + e.message); }
 }
 
 async function adminToggleRepair(guid, componentId, currentRepaired) {
@@ -1929,14 +1960,16 @@ async function adminExport() {
       lines.push(`DRIVER_NAME=${(car.Driver && car.Driver.Name) || ''}`);
       lines.push(`TEAM=${(car.Driver && car.Driver.Team) || ''}`);
       lines.push(`GUID=${(car.Driver && car.Driver.Guid) || ''}`);
-      lines.push(`BALLAST=${car.BallastKG || 0}`);
-      lines.push(`RESTRICTOR=${car.Restrictor || 0}`);
+      // Entiers stricts — AC1 n'accepte pas les décimales
+      lines.push(`BALLAST=${Math.round(car.BallastKG || 0)}`);
+      lines.push(`RESTRICTOR=${Math.round(car.Restrictor || 0)}`);
       lines.push(`FIXED_SETUP=`);
       lines.push('');
     });
 
+    // LF unix (pas CRLF) — ACSM tourne sur Linux
     const ini      = lines.join('\n');
-    const blob     = new Blob([ini], { type: 'text/plain' });
+    const blob     = new Blob([ini], { type: 'text/plain;charset=utf-8' });
     const url      = URL.createObjectURL(blob);
     const a        = document.createElement('a');
     a.href = url; a.download = 'entry_list.ini';

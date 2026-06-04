@@ -810,12 +810,34 @@ const CONFIG = {
     </div>
 
     <div id="admin-drivers-panel">
+    <!-- Barre validation rapide -->
+    <div id="admin-quick-bar" style="display:none;align-items:center;gap:10px;padding:8px 16px;background:#1e2830;border-bottom:1px solid var(--border);">
+      <input type="checkbox" id="admin-check-all" style="cursor:pointer;accent-color:var(--cyan);" onchange="adminSelectAll(this.checked)" />
+      <label for="admin-check-all" style="font-size:11px;color:var(--text-dim);cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;">Tout sélectionner</label>
+      <span style="font-size:11px;color:var(--text-dim)" id="admin-sel-count">0 sélectionné(s)</span>
+      <button class="btn" id="admin-bulk-validate" onclick="adminBulkValidate(true)"
+        style="padding:4px 14px;font-size:11px;border-color:var(--green);color:var(--green)">
+        ✅ Valider sélection
+      </button>
+      <button class="btn" onclick="adminBulkValidate(false)"
+        style="padding:4px 14px;font-size:11px;border-color:var(--yellow);color:var(--yellow)">
+        🔓 Dé-valider sélection
+      </button>
+    </div>
+
     <div class="admin-table-wrap">
       <table class="admin-table">
         <thead>
           <tr>
-            <th>#</th><th>Pilote</th><th>Voiture</th><th>Statut</th>
-            <th>Ballast</th><th>Restr.</th><th>Réparations</th><th>Activité</th><th></th>
+            <th style="width:30px"></th>
+            <th style="width:28px">#</th>
+            <th>Pilote</th>
+            <th>Voiture</th>
+            <th>Statut</th>
+            <th>Ballast</th>
+            <th>Restr.</th>
+            <th>Réparations</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody id="admin-tbody"></tbody>
@@ -1839,6 +1861,10 @@ function adminRender(data) {
   document.getElementById('as-pending').textContent   = pending;
   document.getElementById('as-none').textContent      = none;
 
+  // Barre de validation rapide
+  const quickBar = document.getElementById('admin-quick-bar');
+  if (quickBar) quickBar.style.display = 'flex';
+
   const sorted = [...drivers].sort((a, b) => {
     const rank = d => d.validated ? 2 : d.repair_used_min > 0 ? 1 : 0;
     return rank(a) - rank(b);
@@ -1846,70 +1872,79 @@ function adminRender(data) {
 
   const tbody = document.getElementById('admin-tbody');
   tbody.innerHTML = '';
+
   sorted.forEach((d, i) => {
     const status    = d.validated ? 'ok' : d.repair_used_min > 0 ? 'pending' : 'none';
-    const statusLbl = d.validated ? '✓ Validé' : d.repair_used_min > 0 ? '🔧 En cours' : '— Pas ouvert';
+    const statusLbl = d.validated ? '✅ Validé' : d.repair_used_min > 0 ? '🔧 En cours' : '— Pas ouvert';
     const balHtml   = d.ballast_kg  > 0 ? `<span style="color:var(--yellow);font-weight:700">+${d.ballast_kg}kg</span>` : '<span style="color:var(--text-dim)">—</span>';
     const resHtml   = d.restrictor  > 0 ? `<span style="color:var(--red);font-weight:700">${d.restrictor}</span>` : '<span style="color:var(--text-dim)">—</span>';
     const repPct    = d.damaged_count > 0 ? Math.round(d.repaired_count / d.damaged_count * 100) : 0;
     const repLabel  = d.damaged_count > 0 ? `${d.repaired_count}/${d.damaged_count}` : '—';
-    const lastUpd   = d.last_updated ? new Date(d.last_updated).toLocaleString('fr-FR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+    const className = d.class_name || '';
 
     const tr = document.createElement('tr');
-    tr.style.cursor = 'pointer';
-    tr.onclick = () => openAdminPilotOverlay(d.driver_guid);
     tr.innerHTML = `
+      <td onclick="event.stopPropagation()" style="padding:0 8px;">
+        <input type="checkbox" class="admin-row-check" data-guid="${d.driver_guid}"
+          style="cursor:pointer;width:14px;height:14px;accent-color:var(--cyan);" />
+      </td>
       <td style="color:var(--text-dim);font-size:10px">${i+1}</td>
-      <td><strong style="font-size:13px">${d.driver_name||'—'}</strong></td>
+      <td style="cursor:pointer" onclick="openAdminPilotOverlay('${d.driver_guid}')">
+        <strong style="font-size:13px">${d.driver_name||'—'}</strong>
+        ${className ? `<span style="font-size:9px;color:var(--text-dim);margin-left:6px">${className}</span>` : ''}
+      </td>
       <td style="font-size:10px;color:var(--text-dim)">${d.car_model||'—'}</td>
       <td><span class="admin-status ${status}">${statusLbl}</span></td>
-      <td>${balHtml}</td><td>${resHtml}</td>
+      <td>${balHtml}</td>
+      <td>${resHtml}</td>
       <td>
         <div style="display:flex;align-items:center;gap:6px">
           <div class="admin-repair-bar"><div class="admin-repair-fill" style="width:${repPct}%"></div></div>
           <span style="font-size:10px;color:var(--text-dim)">${repLabel}</span>
         </div>
       </td>
-      <td style="font-size:10px;color:var(--text-dim)">${lastUpd}</td>
-      <td style="font-size:10px;color:var(--text-dim)">▼</td>
+      <td onclick="event.stopPropagation()" style="white-space:nowrap;">
+        <button class="btn" style="padding:2px 10px;font-size:10px;border-color:var(--cyan);color:var(--cyan);margin-right:4px"
+          onclick="openAdminPilotOverlay('${d.driver_guid}')">🔧 Réparer</button>
+        <button class="btn" style="padding:2px 8px;font-size:10px;border-color:${d.validated?'var(--yellow)':'var(--green)'};color:${d.validated?'var(--yellow)':'var(--green)'}"
+          onclick="adminToggleValidated('${d.driver_guid}', ${d.validated})">
+          ${d.validated ? '🔓' : '✅'}
+        </button>
+      </td>
     `;
     tbody.appendChild(tr);
-
-    // Détail composants avec override admin
-    const detailTr = document.createElement('tr');
-    detailTr.className = 'admin-detail';
-    detailTr.id = 'admin-detail-' + d.driver_guid;
-    detailTr.innerHTML = `<td colspan="9">
-      <div style="padding:10px 14px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-          <span style="font-size:10px;color:var(--text-dim);letter-spacing:0.08em;text-transform:uppercase;">Override :</span>
-          <button class="btn" style="padding:3px 10px;font-size:10px;border-color:var(--green);color:var(--green)"
-            onclick="adminRepairAll('${d.driver_guid}', true)">✓ Tout réparer</button>
-          <button class="btn" style="padding:3px 10px;font-size:10px;border-color:var(--red);color:var(--red)"
-            onclick="adminRepairAll('${d.driver_guid}', false)">✗ Tout annuler</button>
-          <button class="btn" style="padding:3px 10px;font-size:10px;border-color:${d.validated?'var(--yellow)':'var(--green)'};color:${d.validated?'var(--yellow)':'var(--green)'}"
-            onclick="adminToggleValidated('${d.driver_guid}', ${d.validated})">
-            ${d.validated ? '🔓 Dé-valider' : '🔒 Valider'}
-          </button>
-        </div>
-        <div class="admin-chips" id="admin-chips-${d.driver_guid}">
-          ${(d.components||[]).length === 0
-            ? '<span style="color:var(--text-dim);font-size:11px;font-style:italic">Aucun composant enregistré</span>'
-            : (d.components||[]).map(c => {
-                const cls = c.repaired ? 'repaired' : (c.score > 45 ? 'severe' : c.score > 15 ? 'damaged' : '');
-                const icon = c.repaired ? '✓' : (c.score > 15 ? '⚠' : '○');
-                return `<span class="admin-chip ${cls}" style="cursor:pointer"
-                  onclick="adminToggleRepair('${d.driver_guid}','${c.component_id}',${c.repaired})"
-                  title="Cliquer pour ${c.repaired?'annuler':'valider'} la réparation">
-                  ${icon} ${c.component_id} <small style="opacity:0.7">${Math.round(c.score||0)}</small>
-                </span>`;
-              }).join('')
-          }
-        </div>
-      </div>
-    </td>`;
-    tbody.appendChild(detailTr);
   });
+
+  // Mise à jour compteur sélection
+  document.querySelectorAll('.admin-row-check').forEach(cb => {
+    cb.addEventListener('change', adminUpdateSelection);
+  });
+}
+
+function adminUpdateSelection() {
+  const checks = document.querySelectorAll('.admin-row-check');
+  const sel    = [...checks].filter(c => c.checked).length;
+  document.getElementById('admin-sel-count').textContent = `${sel} sélectionné(s)`;
+  const allChk = document.getElementById('admin-check-all');
+  if (allChk) allChk.indeterminate = sel > 0 && sel < checks.length;
+}
+
+function adminSelectAll(checked) {
+  document.querySelectorAll('.admin-row-check').forEach(c => c.checked = checked);
+  adminUpdateSelection();
+}
+
+async function adminBulkValidate(validated) {
+  const guids = [...document.querySelectorAll('.admin-row-check:checked')].map(c => c.dataset.guid);
+  if (!guids.length) { showToast('Aucun pilote sélectionné'); return; }
+  const stageId = ADMIN_DATA ? ADMIN_DATA.stage_id : CONFIG.CURRENT_STAGE_ID;
+  const label   = validated ? 'Validation' : 'Dé-validation';
+  showToast(`${label} en cours (${guids.length})…`);
+  try {
+    await Promise.all(guids.map(guid => gasPost('admin_set_validated', { driver_guid: guid, stage_id: stageId, validated })));
+    showToast(`✓ ${label} de ${guids.length} pilote(s)`);
+    await adminRefresh();
+  } catch(e) { showToast('Erreur : ' + e.message); }
 }
 
 async function adminPurgeAll() {
@@ -1969,20 +2004,28 @@ async function openAdminPilotOverlay(guid) {
     // Désactiver les boutons irréversibles côté pilote pendant la session admin
     AUTH.isAdmin = false; // les toggles fonctionnent normalement
 
-    // Render le service park avec les données du pilote
+    // Admin mode : désactiver le check validated pour les toggles
+    STATE.validated = false; // L'admin peut toujours modifier
+
+    // Render et naviguer vers l'onglet Réparations
     selectedId = null;
+    goTab('repairs');
     renderAll();
 
-    // Afficher l'overlay (le .screen est déjà dans la page)
+    // Afficher l'overlay
     _apoEl().classList.add('open');
-    // Ajouter padding-top pour le bandeau
-    document.getElementById('screen').style.marginTop = '44px';
+    document.getElementById('screen').style.marginTop = '46px';
+    // Masquer tous les onglets sauf réparations (admin voit uniquement ça)
+    document.querySelectorAll('.nav-tab').forEach(t => t.style.display = 'none');
+    document.getElementById('screen').classList.remove('validated');
   } catch(e) { showToast('Erreur : ' + e.message); }
 }
 
 function closeAdminPilotOverlay() {
   _apoEl().classList.remove('open');
   document.getElementById('screen').style.marginTop = '';
+  // Restaurer les onglets
+  document.querySelectorAll('.nav-tab').forEach(t => t.style.display = '');
 
   // Restaurer le contexte admin
   AUTH.isAdmin = _savedIsAdmin;

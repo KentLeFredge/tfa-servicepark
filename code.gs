@@ -291,6 +291,11 @@ function doGet(e) {
     var stageId = e.parameter.stage_id   || PROPS.getProperty('CURRENT_STAGE_ID');
     return jsonResponse(adminGetDriverRepairs(guid, stageId));
   });
+  if (action === 'admin_get_driver_data') return withAdminToken(e, function() {
+    var guid    = e.parameter.driver_guid || '';
+    var stageId = e.parameter.stage_id   || PROPS.getProperty('CURRENT_STAGE_ID');
+    return jsonResponse(getDriverData(guid, stageId));
+  });
   return jsonResponse({ error: 'unknown_action' });
 }
 

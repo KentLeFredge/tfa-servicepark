@@ -315,36 +315,34 @@ body { font-family:'Barlow Condensed',sans-serif; background:#3a4048; display:fl
 /* ── ADMIN PILOT OVERLAY ── */
 #admin-pilot-overlay {
   display:none; position:fixed; inset:0; z-index:400;
-  background:rgba(20,26,30,0.96);
+  background:rgba(10,14,18,0.92);
   flex-direction:column;
-  overflow:hidden;
+  align-items:center; justify-content:center;
+  overflow-y:auto; padding:0;
 }
 #admin-pilot-overlay.open { display:flex; }
 #admin-pilot-banner {
+  position:fixed; top:0; left:0; right:0; z-index:401;
   background:repeating-linear-gradient(
     -45deg,
-    #f0ad4e 0px, #f0ad4e 20px,
-    #1e2428 20px, #1e2428 40px
+    #f0ad4e 0px, #f0ad4e 18px,
+    #1a1f24 18px, #1a1f24 36px
   );
-  padding:8px 20px;
-  display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
+  padding:7px 20px;
+  display:flex; align-items:center; justify-content:space-between;
 }
 #admin-pilot-banner .banner-left {
   display:flex; align-items:center; gap:14px;
 }
 #admin-pilot-banner .banner-tag {
-  background:#1e2428; color:#f0ad4e;
+  background:#1a1f24; color:#f0ad4e;
   font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:800;
   letter-spacing:0.2em; text-transform:uppercase;
-  padding:4px 14px; border:2px solid #f0ad4e;
+  padding:3px 12px; border:2px solid #f0ad4e;
 }
 #admin-pilot-banner .banner-name {
   font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:700;
-  color:#1e2428; letter-spacing:0.08em;
-}
-#admin-pilot-screen {
-  flex:1; overflow-y:auto;
-  background:var(--bg); position:relative;
+  color:#1a1f24; letter-spacing:0.08em;
 }
 
 .admin-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:300; align-items:center; justify-content:center; }
@@ -475,6 +473,13 @@ const CONFIG = {
         <span class="sep">|</span>
         <span class="driver" id="driver-name">—</span>
       </div>
+      <button id="btn-refresh-data" onclick="refreshPilotData()"
+        title="Actualiser mes données"
+        style="display:none;background:none;border:1px solid var(--border-l);color:var(--text-dim);font-size:11px;padding:2px 8px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;letter-spacing:0.06em;transition:all 0.15s;"
+        onmouseover="this.style.borderColor='var(--cyan)';this.style.color='var(--cyan)'"
+        onmouseout="this.style.borderColor='var(--border-l)';this.style.color='var(--text-dim)'">
+        ↻
+      </button>
     </div>
   </nav>
 
@@ -853,19 +858,15 @@ const CONFIG = {
     <div class="banner-left">
       <span class="banner-tag">⚠ ADMIN</span>
       <span class="banner-name" id="apo-driver-name">—</span>
-      <span style="font-family:'Barlow Condensed',sans-serif;font-size:12px;color:#1e2428;opacity:0.7" id="apo-car-name">—</span>
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
       <button class="btn primary" id="apo-btn-validate" onclick="adminPilotValidate()" style="font-size:12px;padding:5px 16px;">
         ✅ Valider pour ce pilote
       </button>
       <button class="btn" onclick="closeAdminPilotOverlay()" style="font-size:12px;padding:5px 14px;background:#1e2428;border-color:#f0ad4e;color:#f0ad4e;">
-        ✕ Fermer
+        ✕ Retour admin
       </button>
     </div>
-  </div>
-  <div id="admin-pilot-screen">
-    <!-- Le .screen v5 sera cloné ici -->
   </div>
 </div>
 
@@ -1311,6 +1312,12 @@ function initUI() {
   applyTranslations();
   document.getElementById('sel-part-name').textContent = t('select_prompt');
   document.getElementById('damage-desc').textContent   = t('default_desc');
+
+  // Bouton refresh visible pour les pilotes connectés
+  if (!AUTH.demo) {
+    const rb = document.getElementById('btn-refresh-data');
+    if (rb) rb.style.display = 'inline-block';
+  }
 
   // Vérifier les droits admin directement via l'API
   if (!AUTH.demo) {
@@ -1925,10 +1932,13 @@ async function adminPurgeAll() {
 
 /* ════════════════════════════════════
    ADMIN PILOT OVERLAY
+   Charge les données du pilote dans STATE
+   et affiche le .screen existant
    ════════════════════════════════════ */
-let _apoGuid   = null;
-let _apoState  = null; // copie locale de l'état pilote
-const _apoEl   = () => document.getElementById('admin-pilot-overlay');
+let _apoGuid      = null;
+let _savedState   = null;  // sauvegarde STATE admin
+let _savedIsAdmin = false;
+const _apoEl = () => document.getElementById('admin-pilot-overlay');
 
 async function openAdminPilotOverlay(guid) {
   _apoGuid = guid;
@@ -1936,109 +1946,93 @@ async function openAdminPilotOverlay(guid) {
   try {
     const data = await gasGet('admin_get_driver_data', { driver_guid: guid });
     if (data.error) throw new Error(data.error);
-    _apoState = JSON.parse(JSON.stringify(data)); // copie profonde
 
+    // Sauvegarder le contexte admin
+    _savedState   = STATE ? JSON.parse(JSON.stringify(STATE)) : null;
+    _savedIsAdmin = AUTH.isAdmin;
+
+    // Charger l'état du pilote dans STATE
+    if (data.components) {
+      data.components = data.components.map(function(c) {
+        return Object.assign({ name_fr: c.id, name_en: c.id, desc_fr: '', desc_en: '', icon: '🔧' }, c);
+      });
+    }
+    STATE = data;
+
+    // Mettre à jour le bandeau
     document.getElementById('apo-driver-name').textContent = data.driver_name || guid;
-    document.getElementById('apo-car-name').textContent    = data.car_model   || '';
-
     const btn = document.getElementById('apo-btn-validate');
-    btn.textContent = data.validated ? '✅ Déjà validé — Dé-valider' : '✅ Valider pour ce pilote';
+    btn.textContent       = data.validated ? '🔓 Dé-valider' : '✅ Valider';
     btn.style.borderColor = data.validated ? 'var(--yellow)' : '';
     btn.style.color       = data.validated ? 'var(--yellow)' : '';
 
-    renderAdminPilotScreen(_apoState);
+    // Désactiver les boutons irréversibles côté pilote pendant la session admin
+    AUTH.isAdmin = false; // les toggles fonctionnent normalement
+
+    // Render le service park avec les données du pilote
+    selectedId = null;
+    renderAll();
+
+    // Afficher l'overlay (le .screen est déjà dans la page)
     _apoEl().classList.add('open');
+    // Ajouter padding-top pour le bandeau
+    document.getElementById('screen').style.marginTop = '44px';
   } catch(e) { showToast('Erreur : ' + e.message); }
 }
 
 function closeAdminPilotOverlay() {
   _apoEl().classList.remove('open');
-  _apoGuid  = null;
-  _apoState = null;
+  document.getElementById('screen').style.marginTop = '';
+
+  // Restaurer le contexte admin
+  AUTH.isAdmin = _savedIsAdmin;
+  if (_savedState) {
+    STATE = _savedState;
+    selectedId = null;
+    renderAll();
+  }
+  _apoGuid    = null;
+  _savedState = null;
   adminRefresh();
 }
 
-function renderAdminPilotScreen(state) {
-  const container = document.getElementById('admin-pilot-screen');
-  const cfg       = readConfigSheet_client();
-
-  // Calcul budget utilisé
-  const used   = (state.components || []).reduce((a,c) => a + (c.repaired ? (c.repair_min||0) : 0), 0);
-  const budget = state.repair_budget_min || 60;
-  const pct    = Math.min(100, Math.round(used / budget * 100));
-
-  let compsHtml = '';
-  (state.components || []).forEach(function(comp) {
-    const damaged  = comp.severity !== 'intact' && comp.severity !== 'none';
-    const sevCol   = {intact:'var(--green)',leger:'var(--yellow)',modere:'#e8a030',severe:'var(--red)',critique:'#ff6b68'}[comp.severity] || 'var(--text-dim)';
-    const statusIco= (!damaged || comp.repaired) ? '✓' : '⚠';
-    const statusCol= (!damaged || comp.repaired) ? 'var(--green)' : (sevCol);
-    const impactTxt= (!damaged || comp.repaired) ? (comp.repaired ? '<span style="color:var(--green);font-size:10px">réparé</span>' : '') :
-      [(comp.ballast_kg>0?`+${comp.ballast_kg}kg`:''), (comp.restrictor>0?`R:${comp.restrictor}`:'')].filter(Boolean).join(' ');
-
-    compsHtml += `
-      <div style="display:flex;align-items:center;height:44px;padding:0 14px;border-bottom:1px solid var(--border);gap:8px;background:${comp.repaired?'rgba(92,184,92,0.06)':''}">
-        <span style="font-size:9px;color:var(--text-dim)">▶</span>
-        <span style="flex:1;font-size:16px;font-weight:700;color:${damaged?'var(--white)':'var(--text-dim)'}">${comp.id}</span>
-        <span style="font-size:10px;color:${sevCol};font-weight:700;min-width:60px;text-align:right">${impactTxt}</span>
-        <span style="font-size:14px;color:${statusCol}">${statusIco}</span>
-        <span onclick="adminPilotToggle('${comp.id}')"
-          style="width:20px;height:20px;border:1px solid ${comp.repaired?'var(--green)':'var(--border-l)'};display:flex;align-items:center;justify-content:center;cursor:${damaged?'pointer':'default'};background:${comp.repaired?'rgba(92,184,92,0.3)':'var(--bg-panel)'};font-size:13px;color:var(--green);flex-shrink:0;">
-          ${comp.repaired ? '✓' : ''}
-        </span>
-      </div>`;
-  });
-
-  container.innerHTML = `
-    <div style="padding:14px 18px 10px;background:var(--bg-dark);border-bottom:2px solid var(--border);">
-      <div style="font-size:15px;font-weight:700;color:var(--white);margin-bottom:4px;">Budget réparations</div>
-      <div style="height:3px;background:var(--bg-row);border-radius:2px;overflow:hidden;margin-bottom:6px;">
-        <div style="height:100%;width:${pct}%;background:${pct>=100?'var(--red)':pct>=75?'var(--yellow)':'var(--cyan)'};transition:width 0.3s;"></div>
-      </div>
-      <div style="display:flex;gap:12px;">
-        <span style="font-size:12px;color:var(--text-dim)">Utilisé : <strong style="color:var(--white)">${used} min</strong></span>
-        <span style="font-size:12px;color:var(--text-dim)">Budget : <strong style="color:var(--white)">${budget} min</strong></span>
-        <span style="font-size:12px;color:var(--text-dim)">Ballast : <strong style="color:var(--yellow)">${state.ballast_kg||0} kg</strong></span>
-        <span style="font-size:12px;color:var(--text-dim)">Restrictor : <strong style="color:var(--red)">${state.restrictor||0}</strong></span>
-      </div>
-    </div>
-    <div>${compsHtml}</div>
-  `;
-}
-
-function adminPilotToggle(compId) {
-  if (!_apoState) return;
-  const comp = (_apoState.components || []).find(c => c.id === compId);
-  if (!comp || (comp.severity === 'intact' || comp.severity === 'none')) return;
-  comp.repaired = !comp.repaired;
-  renderAdminPilotScreen(_apoState);
-  // Sauvegarder en arrière-plan
-  gasPost('admin_set_repair', {
-    driver_guid:  _apoGuid,
-    stage_id:     ADMIN_DATA ? ADMIN_DATA.stage_id : CONFIG.CURRENT_STAGE_ID,
-    component_id: compId,
-    repaired:     comp.repaired,
-  }).catch(function() { showToast('Erreur sauvegarde composant'); });
-}
-
 async function adminPilotValidate() {
-  if (!_apoGuid || !_apoState) return;
-  const isValidated = _apoState.validated;
-  const stageId = ADMIN_DATA ? ADMIN_DATA.stage_id : CONFIG.CURRENT_STAGE_ID;
+  if (!_apoGuid || !STATE) return;
+  const stageId   = ADMIN_DATA ? ADMIN_DATA.stage_id : CONFIG.CURRENT_STAGE_ID;
+  const newVal    = !STATE.validated;
   try {
-    await gasPost('admin_set_validated', { driver_guid: _apoGuid, stage_id: stageId, validated: !isValidated });
-    _apoState.validated = !isValidated;
+    await gasPost('admin_set_validated', { driver_guid: _apoGuid, stage_id: stageId, validated: newVal });
+    STATE.validated = newVal;
     const btn = document.getElementById('apo-btn-validate');
-    btn.textContent   = _apoState.validated ? '✅ Déjà validé — Dé-valider' : '✅ Valider pour ce pilote';
-    btn.style.borderColor = _apoState.validated ? 'var(--yellow)' : '';
-    btn.style.color       = _apoState.validated ? 'var(--yellow)' : '';
-    showToast(_apoState.validated ? 'Pilote validé ✓' : 'Validation annulée');
+    btn.textContent       = newVal ? '🔓 Dé-valider' : '✅ Valider';
+    btn.style.borderColor = newVal ? 'var(--yellow)' : '';
+    btn.style.color       = newVal ? 'var(--yellow)' : '';
+    // Mettre à jour le screen
+    const screen = document.getElementById('screen');
+    if (newVal) screen.classList.add('validated');
+    else        screen.classList.remove('validated');
+    renderAll();
+    showToast(newVal ? 'Pilote validé ✓' : 'Validation annulée');
   } catch(e) { showToast('Erreur : ' + e.message); }
 }
 
-// Lecture config locale (pour budget) — fallback defaults
-function readConfigSheet_client() {
-  return { repair_budget_min: 60 };
+async function refreshPilotData() {
+  const btn = document.getElementById('btn-refresh-data');
+  if (btn) { btn.textContent = '…'; btn.disabled = true; }
+  try {
+    const data = await gasGet('get_driver');
+    if (data.error) throw new Error(data.error);
+    if (data.components) {
+      data.components = data.components.map(function(c) {
+        return Object.assign({ name_fr: c.id, name_en: c.id, desc_fr: '', desc_en: '', icon: '🔧' }, c);
+      });
+    }
+    STATE = data;
+    selectedId = null;
+    renderAll();
+    showToast('Données actualisées');
+  } catch(e) { showToast('Erreur actualisation : ' + e.message); }
+  finally { if (btn) { btn.textContent = '↻'; btn.disabled = false; } }
 }
 
 async function adminSaveHandicap(guid) {

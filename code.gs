@@ -1626,7 +1626,7 @@ function adminGetDriverRepairs(guid, stageId) {
   return { ok: true, components: components };
 }
 
-function adminSetRepair(guid, stageId, componentId, repaired) {
+function adminSetRepair(guid, stageId, componentId, repaired, repairPct) {
   var dcSheet  = getSheet('damage_components');
   if (!dcSheet) throw new Error('Feuille damage_components introuvable');
   var dcData   = dcSheet.getDataRange().getValues();
@@ -1645,7 +1645,6 @@ function adminSetRepair(guid, stageId, componentId, repaired) {
     }
   }
   if (!found) throw new Error('Composant introuvable : ' + componentId);
-  // Recalculer les totaux driver_state
   _recalcDriverTotals(guid, stageId);
   return { ok: true };
 }

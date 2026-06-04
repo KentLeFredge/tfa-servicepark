@@ -1679,17 +1679,64 @@ function renderList() {
     } else if (comp.repaired) {
       impactHtml = `<span style="font-size:10px;color:var(--green);font-weight:700;min-width:64px;text-align:right;">${t('badge_repaired')}</span>`;
     }
-    let ckClass='row-check', ckContent='';
-    if (!damaged)          { ckClass+=' disabled repaired'; ckContent='✓'; }
-    else if (comp.repaired){ ckClass+=' repaired'; ckContent='✓'; }
-    else if (!canRepair)   { ckClass+=' disabled'; }
-    row.innerHTML = `
-      <span class="row-arrow">▶</span>
-      <span class="row-name">${name}</span>
-      ${impactHtml}
-      <span class="row-status">${statusHtml}</span>
-      <span class="${ckClass}" onclick="event.stopPropagation();toggleRepair('${comp.id}')">${ckContent}</span>
-    `;
+    if (_apoGuid && damaged) {
+      // ── Mode ADMIN : slider de réparation partielle ──
+      const pct = comp.repair_pct !== undefined ? comp.repair_pct : (comp.repaired ? 100 : 0);
+      comp.repair_pct = pct;
+      const penMax  = { refroidissement:12, direction:20, transmission:8, suspension:8, chassis:20 };
+      const costMax = { refroidissement:40, direction:35, transmission:30, suspension:20, chassis:50 };
+      const penType = { refroidissement:'R', direction:'kg', transmission:'R', suspension:'kg', chassis:'kg' };
+
+      function calcAdminPreview(p) {
+        const score  = comp.score || 0;
+        const resid  = score * (1 - p/100) / 100;
+        const pen    = Math.pow(Math.max(resid,0), 0.7) * (penMax[comp.id]||0);
+        const cost   = (p/100) * (score/100) * (costMax[comp.id]||0);
+        return { pen: Math.round(pen*10)/10, cost: Math.round(cost*10)/10, type: penType[comp.id]||'kg' };
+      }
+
+      row.style.flexDirection = 'column';
+      row.style.height = 'auto';
+      row.style.padding = '8px 14px';
+      row.style.alignItems = 'stretch';
+      const preview = calcAdminPreview(pct);
+      row.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span class="row-arrow">▶</span>
+          <span class="row-name">${name}</span>
+          ${impactHtml}
+          <span class="row-status">${statusHtml}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:10px;color:var(--text-dim);min-width:32px">0%</span>
+          <input type="range" min="0" max="100" step="1" value="${pct}"
+            id="slider-${comp.id}"
+            style="flex:1;accent-color:var(--green);cursor:pointer;"
+            oninput="updateSliderPreview('${comp.id}', this.value)"
+            onchange="applySlider('${comp.id}', this.value)" />
+          <span style="font-size:10px;color:var(--text-dim);min-width:36px">100%</span>
+          <span id="slider-pct-${comp.id}" style="font-size:11px;font-weight:700;color:var(--cyan);min-width:28px;text-align:right">${pct}%</span>
+        </div>
+        <div style="display:flex;gap:16px;margin-top:4px;font-size:10px;color:var(--text-dim);">
+          <span>Coût : <strong id="slider-cost-${comp.id}" style="color:var(--white)">${preview.cost} min</strong></span>
+          <span>Pénalité résiduelle : <strong id="slider-pen-${comp.id}" style="color:${preview.pen>0?'var(--yellow)':'var(--green)'}">${preview.pen} ${preview.type}</strong></span>
+        </div>
+      `;
+      row.onclick = null;
+    } else {
+      // ── Mode PILOTE : checkbox binaire ──
+      let ckClass='row-check', ckContent='';
+      if (!damaged)          { ckClass+=' disabled repaired'; ckContent='✓'; }
+      else if (comp.repaired){ ckClass+=' repaired'; ckContent='✓'; }
+      else if (!canRepair)   { ckClass+=' disabled'; }
+      row.innerHTML = `
+        <span class="row-arrow">▶</span>
+        <span class="row-name">${name}</span>
+        ${impactHtml}
+        <span class="row-status">${statusHtml}</span>
+        <span class="${ckClass}" onclick="event.stopPropagation();toggleRepair('${comp.id}')">${ckContent}</span>
+      `;
+    }
     list.appendChild(row);
   });
 }
@@ -1720,12 +1767,13 @@ function selectPart(id) {
 }
 
 function toggleRepair(id) {
-  if (STATE.validated) return;
+  if (STATE.validated && !_apoGuid) return; // admin peut toujours
   const comp=STATE.components.find(c=>c.id===id);
   if (!comp||comp.severity==='intact') return;
   const doRepair=!comp.repaired;
   const remaining=STATE.repair_budget_min-STATE.repair_used_min;
-  if (doRepair && comp.repair_min>remaining) { showToast(t('toast_budget',{n:comp.repair_min-remaining})); return; }
+  // En mode admin, pas de blocage budget — il peut décocher même si budget dépassé
+  if (!_apoGuid && doRepair && comp.repair_min>remaining) { showToast(t('toast_budget',{n:comp.repair_min-remaining})); return; }
 
   /* Appliquer immédiatement (non bloquant) */
   applyLocal(comp, doRepair);
@@ -1800,8 +1848,14 @@ function resetAll() {
 
   /* Resync en arrière-plan */
   if (!AUTH.demo) {
-    gasPost('save_repairs', { components: STATE.components })
-      .catch(() => showToast(t('toast_save_bg_err')));
+    if (_apoGuid) {
+      const stageId = ADMIN_DATA ? ADMIN_DATA.stage_id : STAGE_ID;
+      STATE.components.forEach(function(c) {
+        gasPost('admin_set_repair', { driver_guid: _apoGuid, stage_id: stageId, component_id: c.id, repaired: false }).catch(() => {});
+      });
+    } else {
+      gasPost('save_repairs', { components: STATE.components }).catch(() => showToast(t('toast_save_bg_err')));
+    }
   }
 }
 
@@ -2077,6 +2131,66 @@ async function adminPilotValidate() {
     renderAll();
     showToast(newVal ? 'Pilote validé ✓' : 'Validation annulée');
   } catch(e) { showToast('Erreur : ' + e.message); }
+}
+
+// ── Slider réparation partielle (mode admin) ──
+const _penMax  = { refroidissement:12, direction:20, transmission:8, suspension:8, chassis:20 };
+const _costMax = { refroidissement:40, direction:35, transmission:30, suspension:20, chassis:50 };
+const _penType = { refroidissement:'R', direction:'kg', transmission:'R', suspension:'kg', chassis:'kg' };
+
+function updateSliderPreview(compId, pct) {
+  pct = Number(pct);
+  const comp  = STATE.components.find(c => c.id === compId);
+  if (!comp) return;
+  const score  = comp.score || 0;
+  const resid  = score * (1 - pct/100) / 100;
+  const pen    = Math.round(Math.pow(Math.max(resid,0), 0.7) * (_penMax[compId]||0) * 10) / 10;
+  const cost   = Math.round((pct/100) * (score/100) * (_costMax[compId]||0) * 10) / 10;
+  const type   = _penType[compId] || 'kg';
+
+  const pctEl  = document.getElementById('slider-pct-'  + compId);
+  const penEl  = document.getElementById('slider-pen-'  + compId);
+  const costEl = document.getElementById('slider-cost-' + compId);
+  if (pctEl)  pctEl.textContent  = pct + '%';
+  if (penEl)  { penEl.textContent = pen + ' ' + type; penEl.style.color = pen > 0 ? 'var(--yellow)' : 'var(--green)'; }
+  if (costEl) costEl.textContent = cost + ' min';
+}
+
+function applySlider(compId, pct) {
+  pct = Number(pct);
+  const comp = STATE.components.find(c => c.id === compId);
+  if (!comp) return;
+  comp.repair_pct = pct;
+  comp.repaired   = pct >= 100;
+
+  // Recalcul local ballast/restrictor
+  let bal = 0;
+  const restrVals = [];
+  STATE.components.forEach(function(c) {
+    if (!c.repaired || c.repair_pct < 100) {
+      const rp    = c.repair_pct || 0;
+      const score = c.score || 0;
+      const resid = score * (1 - rp/100) / 100;
+      const pen   = Math.pow(Math.max(resid,0), 0.7) * (_penMax[c.id]||0);
+      const type  = _penType[c.id];
+      if (type === 'kg') bal += pen;
+      else restrVals.push(pen);
+    }
+  });
+  restrVals.sort((a,b)=>b-a);
+  STATE.ballast_kg  = Math.round(Math.min(bal, 40) * 10) / 10;
+  STATE.restrictor  = Math.round(Math.min(restrVals[0]||0 + (restrVals[1]||0)*0.3, 12) * 10) / 10;
+  updateHandicapBadges();
+
+  // Sauvegarder via admin_set_repair
+  if (_apoGuid) {
+    const stageId = ADMIN_DATA ? ADMIN_DATA.stage_id : STAGE_ID;
+    gasPost('admin_set_repair', {
+      driver_guid: _apoGuid, stage_id: stageId,
+      component_id: compId, repaired: pct >= 100,
+      repair_pct: pct
+    }).catch(function() { showToast('Erreur sauvegarde'); });
+  }
 }
 
 async function refreshPilotData() {

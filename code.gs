@@ -355,6 +355,14 @@ function doPost(e) {
       body.driver_guid, body.ballast_kg, body.restrictor
     ));
   });
+  if (action === 'admin_set_component_score') return withAdminToken(e, function() {
+    return jsonResponse(adminSetComponentScore(
+      body.driver_guid,
+      body.stage_id || PROPS.getProperty('CURRENT_STAGE_ID'),
+      body.component_id,
+      body.score
+    ));
+  });
   if (action === 'get_general_standings') return withAdminToken(e, function() {
     return jsonResponse(getGeneralStandings());
   });
@@ -1750,6 +1758,81 @@ function purgeDatabase() {
 // ──────────────────────────────────────────────────────────────
 // ADMIN — SET HANDICAP MANUEL (override direct ballast/restrictor)
 // ──────────────────────────────────────────────────────────────
+
+// ── Admin : modifier le score d'un composant (créer ou mettre à jour) ──
+function adminSetComponentScore(guid, stageId, componentId, score) {
+  var cfg     = readConfigSheet();
+  var dcSheet = getOrCreateSheet('damage_components',
+    ['driver_guid','stage_id','component_id','score','severity','ballast_kg','restrictor','repair_min','repaired']);
+  var dcData   = dcSheet.getDataRange().getValues();
+  var dcHeaders= dcData[0];
+  var guidIdx  = dcHeaders.indexOf('driver_guid');
+  var stageIdx = dcHeaders.indexOf('stage_id');
+  var compIdx  = dcHeaders.indexOf('component_id');
+  var scoreIdx = dcHeaders.indexOf('score');
+  var sevIdx   = dcHeaders.indexOf('severity');
+
+  score = Math.max(0, Math.min(100, Number(score) || 0));
+  var severity = scoreToSeverity(score, cfg);
+
+  // Chercher la ligne existante
+  var rowNum = -1;
+  for (var i = 1; i < dcData.length; i++) {
+    if (String(dcData[i][guidIdx])  === String(guid) &&
+        String(dcData[i][stageIdx]) === String(stageId) &&
+        String(dcData[i][compIdx])  === String(componentId)) {
+      rowNum = i + 1; break;
+    }
+  }
+
+  var penType = PENALTY_TYPE[componentId] || 'ballast_kg';
+  var penMax  = {
+    refroidissement: Number(cfg.PENALTY_REFROIDISSEMENT_MAX)||12,
+    direction:       Number(cfg.PENALTY_DIRECTION_MAX)||20,
+    transmission:    Number(cfg.PENALTY_TRANSMISSION_MAX)||8,
+    suspension:      Number(cfg.PENALTY_SUSPENSION_MAX)||8,
+    chassis:         Number(cfg.PENALTY_CHASSIS_MAX)||20,
+  };
+  var repairMax = {
+    refroidissement: Number(cfg.REPAIR_COST_REFROIDISSEMENT)||40,
+    direction:       Number(cfg.REPAIR_COST_DIRECTION)||35,
+    transmission:    Number(cfg.REPAIR_COST_TRANSMISSION)||30,
+    suspension:      Number(cfg.REPAIR_COST_SUSPENSION)||20,
+    chassis:         Number(cfg.REPAIR_COST_CHASSIS)||50,
+  };
+  var pen     = scoreToPenaltyValue(score, 0, penMax[componentId]||0, cfg);
+  var repCost = Math.ceil(scoreToRepairCost(score, 0, repairMax[componentId]||0, cfg));
+
+  if (rowNum > 0) {
+    // Mise à jour
+    dcSheet.getRange(rowNum, scoreIdx + 1).setValue(score);
+    dcSheet.getRange(rowNum, sevIdx   + 1).setValue(severity);
+    var balIdx = dcHeaders.indexOf('ballast_kg');
+    var resIdx = dcHeaders.indexOf('restrictor');
+    var repIdx = dcHeaders.indexOf('repair_min');
+    if (penType === 'ballast_kg') {
+      dcSheet.getRange(rowNum, balIdx+1).setValue(pen);
+      dcSheet.getRange(rowNum, resIdx+1).setValue(0);
+    } else {
+      dcSheet.getRange(rowNum, balIdx+1).setValue(0);
+      dcSheet.getRange(rowNum, resIdx+1).setValue(pen);
+    }
+    dcSheet.getRange(rowNum, repIdx+1).setValue(repCost);
+  } else {
+    // Création nouvelle ligne
+    var newRow = dcHeaders.map(function(h) {
+      var m = { driver_guid: guid, stage_id: stageId, component_id: componentId,
+                score: score, severity: severity, repaired: false, repair_min: repCost,
+                ballast_kg: penType==='ballast_kg'?pen:0,
+                restrictor: penType==='restrictor'?pen:0 };
+      return m[h] !== undefined ? m[h] : '';
+    });
+    dcSheet.appendRow(newRow);
+  }
+
+  _recalcDriverTotals(guid, stageId);
+  return { ok: true, score: score, severity: severity };
+}
 
 function adminSetHandicap(guid, ballast, restrictor) {
   var dsSheet  = getSheet('driver_state');

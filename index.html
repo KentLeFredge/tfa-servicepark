@@ -1660,7 +1660,8 @@ function renderList() {
   list.innerHTML  = '';
   STATE.components.forEach(comp => {
     const name      = LANG==='en' ? comp.name_en : comp.name_fr;
-    const damaged   = comp.severity !== 'intact';
+    // En mode admin : tous les composants sont accessibles (même intacts)
+    const damaged   = _apoGuid ? true : comp.severity !== 'intact';
     const isSel     = selectedId === comp.id;
     const canRepair = damaged && !comp.repaired && comp.repair_min <= remaining;
     const noBudget  = damaged && !comp.repaired && remaining === 0;
@@ -1679,47 +1680,50 @@ function renderList() {
     } else if (comp.repaired) {
       impactHtml = `<span style="font-size:10px;color:var(--green);font-weight:700;min-width:64px;text-align:right;">${t('badge_repaired')}</span>`;
     }
-    if (_apoGuid && damaged) {
-      // ── Mode ADMIN : slider de réparation partielle ──
-      const pct = comp.repair_pct !== undefined ? comp.repair_pct : (comp.repaired ? 100 : 0);
+    if (_apoGuid) {
+      // ── Mode ADMIN : score éditable + slider réparation ──
+      const score = comp.score || 0;
+      const pct   = comp.repair_pct !== undefined ? comp.repair_pct : (comp.repaired ? 100 : 0);
       comp.repair_pct = pct;
-      const penMax  = { refroidissement:12, direction:20, transmission:8, suspension:8, chassis:20 };
-      const costMax = { refroidissement:40, direction:35, transmission:30, suspension:20, chassis:50 };
-      const penType = { refroidissement:'R', direction:'kg', transmission:'R', suspension:'kg', chassis:'kg' };
 
-      function calcAdminPreview(p) {
-        const score  = comp.score || 0;
-        const resid  = score * (1 - p/100) / 100;
-        const pen    = Math.pow(Math.max(resid,0), 0.7) * (penMax[comp.id]||0);
-        const cost   = (p/100) * (score/100) * (costMax[comp.id]||0);
-        return { pen: Math.round(pen*10)/10, cost: Math.round(cost*10)/10, type: penType[comp.id]||'kg' };
+      function calcP(s, p) {
+        const resid = s * (1-p/100) / 100;
+        const pen   = Math.round(Math.pow(Math.max(resid,0),0.7)*(_penMax[comp.id]||0)*10)/10;
+        const cost  = Math.round((p/100)*(s/100)*(_costMax[comp.id]||0)*10)/10;
+        return { pen, cost, type: _penType[comp.id]||'kg' };
       }
+      const prev = calcP(score, pct);
+      const sevCol = {intact:'var(--green)',leger:'var(--yellow)',modere:'#e8a030',severe:'var(--red)',critique:'#ff6b68'}[comp.severity]||'var(--text-dim)';
 
       row.style.flexDirection = 'column';
-      row.style.height = 'auto';
-      row.style.padding = '8px 14px';
-      row.style.alignItems = 'stretch';
-      const preview = calcAdminPreview(pct);
+      row.style.height        = 'auto';
+      row.style.padding       = '8px 14px';
+      row.style.alignItems    = 'stretch';
       row.innerHTML = `
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-          <span class="row-arrow">▶</span>
-          <span class="row-name">${name}</span>
-          ${impactHtml}
-          <span class="row-status">${statusHtml}</span>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <span class="row-name" style="color:${damaged?'var(--white)':'var(--text-dim)'}">${name}</span>
+          <span style="font-size:10px;font-weight:700;color:${sevCol}">${comp.severity||'intact'}</span>
+          <span style="flex:1"></span>
+          <span style="font-size:10px;color:var(--text-dim)">Score</span>
+          <input type="number" min="0" max="100" step="1" value="${Math.round(score)}"
+            id="score-${comp.id}"
+            style="width:52px;background:var(--bg-panel);border:1px solid var(--border-l);color:var(--cyan);font-family:'Barlow Condensed',sans-serif;font-size:13px;padding:2px 6px;text-align:center;"
+            title="Score de dégât (0=intact, 100=détruit)"
+            onchange="applyScore('${comp.id}', this.value)" />
         </div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <span style="font-size:10px;color:var(--text-dim);min-width:32px">0%</span>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <span style="font-size:10px;color:var(--text-dim);width:60px">Réparation</span>
           <input type="range" min="0" max="100" step="1" value="${pct}"
             id="slider-${comp.id}"
             style="flex:1;accent-color:var(--green);cursor:pointer;"
             oninput="updateSliderPreview('${comp.id}', this.value)"
             onchange="applySlider('${comp.id}', this.value)" />
-          <span style="font-size:10px;color:var(--text-dim);min-width:36px">100%</span>
-          <span id="slider-pct-${comp.id}" style="font-size:11px;font-weight:700;color:var(--cyan);min-width:28px;text-align:right">${pct}%</span>
+          <span id="slider-pct-${comp.id}" style="font-size:11px;font-weight:700;color:var(--cyan);width:36px;text-align:right">${pct}%</span>
         </div>
-        <div style="display:flex;gap:16px;margin-top:4px;font-size:10px;color:var(--text-dim);">
-          <span>Coût : <strong id="slider-cost-${comp.id}" style="color:var(--white)">${preview.cost} min</strong></span>
-          <span>Pénalité résiduelle : <strong id="slider-pen-${comp.id}" style="color:${preview.pen>0?'var(--yellow)':'var(--green)'}">${preview.pen} ${preview.type}</strong></span>
+        <div style="display:flex;gap:14px;font-size:10px;color:var(--text-dim);">
+          <span>Coût : <strong id="slider-cost-${comp.id}" style="color:var(--white)">${prev.cost} min</strong></span>
+          <span>Pénalité : <strong id="slider-pen-${comp.id}" style="color:${prev.pen>0?'var(--yellow)':'var(--green)'}">${prev.pen} ${prev.type}</strong></span>
+          <span style="margin-left:auto;cursor:pointer;color:var(--text-dim)" onclick="resetComponent('${comp.id}')" title="Remettre à l'état de session">↺ Reset</span>
         </div>
       `;
       row.onclick = null;
@@ -2167,6 +2171,46 @@ function updateSliderPreview(compId, pct) {
   if (pctEl)  pctEl.textContent  = pct + '%';
   if (penEl)  { penEl.textContent = pen + ' ' + type; penEl.style.color = pen > 0 ? 'var(--yellow)' : 'var(--green)'; }
   if (costEl) costEl.textContent = cost + ' min';
+}
+
+async function applyScore(compId, newScore) {
+  newScore = Math.max(0, Math.min(100, Math.round(Number(newScore)||0)));
+  const comp = STATE.components.find(c => c.id === compId);
+  if (!comp) return;
+  comp.score = newScore;
+  // Recalculer la preview du slider avec le nouveau score
+  const sliderEl = document.getElementById('slider-' + compId);
+  if (sliderEl) updateSliderPreview(compId, sliderEl.value);
+
+  if (!_apoGuid) return;
+  const stageId = ADMIN_DATA ? ADMIN_DATA.stage_id : STAGE_ID;
+  try {
+    await gasPost('admin_set_component_score', {
+      driver_guid: _apoGuid, stage_id: stageId,
+      component_id: compId, score: newScore
+    });
+    // Recharger pour avoir les vraies valeurs recalculées
+    const data = await gasGet('admin_get_driver_data', { driver_guid: _apoGuid });
+    if (!data.error) {
+      STATE.components = data.components || STATE.components;
+      renderList();
+    }
+  } catch(e) { showToast('Erreur score : ' + e.message); }
+}
+
+// Remet le composant à l'état originel (score inchangé, repair_pct=0)
+async function resetComponent(compId) {
+  const comp = STATE.components.find(c => c.id === compId);
+  if (!comp) return;
+  comp.repaired   = false;
+  comp.repair_pct = 0;
+  const el = document.getElementById('slider-' + compId);
+  if (el) { el.value = 0; updateSliderPreview(compId, 0); }
+  if (_apoGuid) {
+    const stageId = ADMIN_DATA ? ADMIN_DATA.stage_id : STAGE_ID;
+    gasPost('admin_set_repair', { driver_guid: _apoGuid, stage_id: stageId, component_id: compId, repaired: false }).catch(() => {});
+  }
+  renderList();
 }
 
 function applySlider(compId, pct) {

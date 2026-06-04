@@ -1805,20 +1805,33 @@ function applyLocal(comp, doRepair) {
 }
 
 function renderTimer() {
-  // Calcule le temps utilisé depuis les composants réparés
+  const el   = document.getElementById('timer-val');
+  const fill = document.getElementById('timer-fill');
+  const sub  = document.getElementById('timer-sub');
+
+  // Mode admin-pilote : pas de budget, indicateur neutre
+  if (_apoGuid) {
+    el.innerHTML = `∞<span class="timer-unit"> min</span>`;
+    el.className = 'timer-val';
+    fill.style.width      = '100%';
+    fill.style.background = 'var(--yellow)';
+    if (sub) sub.textContent = LANG === 'en'
+      ? 'ADMIN MODE — No budget limit'
+      : 'MODE ADMIN — Aucune limite de budget';
+    return;
+  }
+
+  // Mode pilote normal
   const used   = STATE.components.reduce((acc, c) => acc + (c.repaired ? (c.repair_min || 0) : 0), 0);
   const budget = STATE.repair_budget_min || 60;
   const pct    = Math.min(100, Math.round(used / budget * 100));
-  STATE.repair_used_min = used; // sync
-  const el = document.getElementById('timer-val');
+  STATE.repair_used_min = used;
   el.innerHTML = `${used}<span class="timer-unit">${t('timer_unit')}</span>`;
   const isOver = used > budget, isWarn = !isOver && pct >= 75;
   el.className = 'timer-val' + (isOver ? ' crit' : isWarn ? ' warn' : '');
-  const fill = document.getElementById('timer-fill');
-  fill.style.width = pct + '%';
+  fill.style.width      = pct + '%';
   fill.style.background = isOver ? 'var(--red)' : isWarn ? 'var(--yellow)' : 'var(--cyan)';
-  document.getElementById('timer-sub').textContent =
-    `${used} / ${budget} ${LANG === 'en' ? 'min allocated' : 'min allouées'}`;
+  if (sub) sub.textContent = `${used} / ${budget} ${LANG === 'en' ? 'min allocated' : 'min allouées'}`;
 }
 
 function updateHandicapBadges() {

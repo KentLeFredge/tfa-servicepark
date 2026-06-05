@@ -1,0 +1,2855 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TFA — Service Park</title>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Caveat:wght@600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --wood:#3a2510; --wood-mid:#52361a;
+  --paper:#f5edd8; --paper-aged:#e0d4b4;
+  --kraft:#c4a46a; --kraft-lt:#d4b882;
+  --ink:#1c1408; --ink-fade:#3c2810; --ink-light:#6a5030;
+  --red-mark:#8a1010; --red-stamp:#9a0808;
+  --orange-vin:#b83808; --amber:#b87008;
+  --green-vin:#1a3c10; --green-lt:#246018;
+  --hanhart:#a8c8c2;
+  --bg:#e0d4b4; --bg-dark:#c8b890; --bg-mid:#d4c8a8;
+  --bg-panel:#e8dfc8; --bg-row:#d8cca8; --bg-sel:var(--kraft-lt);
+  --text:#1c1408; --text-dim:#6a5030; --text-dk:#0a0604;
+  --green:#246018; --yellow:#b87008; --red:#8a1010;
+  --cyan:#3a6a6a; --white:#f5edd8;
+  --border:#b49a6a; --border-l:#c8aa80;
+  --font-type:'Special Elite',serif;
+  --font-mono:'JetBrains Mono',monospace;
+  --font-hand:'Caveat',cursive;
+}
+body {
+  font-family:var(--font-type);
+  background-color:var(--wood);
+  background-image:repeating-linear-gradient(90deg,transparent,transparent 3px,rgba(0,0,0,0.04) 3px,rgba(0,0,0,0.04) 4px),repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(255,255,255,0.02) 40px,rgba(255,255,255,0.02) 41px);
+  min-height:100vh; display:flex; align-items:center; justify-content:center; padding:40px 20px; position:relative;
+}
+.screen {
+  width:min(1400px,95vw);
+  background:var(--paper);
+  border:1px solid #b49a6a;
+  box-shadow:8px 12px 32px rgba(0,0,0,0.55),2px 3px 8px rgba(0,0,0,0.3);
+  user-select:none; position:relative; transform:rotate(-0.5deg);
+}
+#stopwatch-container {
+  position:absolute; top:-10px; right:-25px; width:170px; z-index:30;
+  filter:drop-shadow(4px 8px 16px rgba(0,0,0,0.6)); transform:rotate(3deg);
+}
+#sw-label { text-align:center; font-family:var(--font-mono); font-size:9px; color:#8a6a40; margin-top:2px; letter-spacing:0.05em; }
+#stopwatch-container.urgent { animation:watch-pulse 1s ease-in-out infinite; }
+@keyframes watch-pulse { 0%,100% { filter:drop-shadow(4px 8px 16px rgba(0,0,0,0.6)); } 50% { filter:drop-shadow(4px 8px 20px rgba(200,20,20,0.5)); } }
+.nav { background:var(--paper-aged); border-bottom:2px solid var(--border); display:flex; align-items:stretch; padding:0 16px; height:42px; }
+.nav-left { display:flex; align-items:flex-end; flex:1; gap:2px; }
+.nav-sep { display:none; }
+.nav-tab {
+  font-family:var(--font-type); font-size:11px; letter-spacing:0.08em; color:var(--ink-light);
+  background:var(--paper-aged); border:1px solid #b49a6a; border-bottom:none;
+  padding:5px 14px 3px; height:auto; align-self:flex-end; cursor:pointer;
+  clip-path:polygon(0 25%,5px 0,calc(100% - 5px) 0,100% 25%,100% 100%,0 100%);
+  transition:background 0.15s; white-space:nowrap; position:relative;
+}
+.nav-tab:hover { color:var(--ink); background:var(--kraft-lt); }
+.nav-tab.active { background:var(--paper); color:var(--ink); font-size:12px; z-index:2; box-shadow:inset 0 2px 0 var(--amber); }
+.nav-tab:not(.active)::after { content:''; position:absolute; top:0; right:0; width:7px; height:7px; background:linear-gradient(225deg,var(--wood-mid) 50%,transparent 50%); }
+.nav-right { display:flex; align-items:center; gap:10px; padding-bottom:4px; }
+.lang-toggle { display:flex; border:1px solid var(--border); overflow:hidden; }
+.lang-btn { font-family:var(--font-type); font-size:10px; letter-spacing:0.1em; padding:3px 9px; cursor:pointer; border:none; background:transparent; color:var(--ink-light); transition:all 0.12s; }
+.lang-btn.active { background:var(--amber); color:var(--paper); }
+.lang-btn:hover:not(.active) { color:var(--ink); }
+.nav-driver { display:flex; align-items:center; font-family:var(--font-hand); font-size:14px; font-weight:700; color:var(--ink); gap:6px; }
+.nav-driver .sep { color:var(--border-l); }
+.nav-driver .driver { color:var(--red-mark); }
+.validated-banner { display:none; background:rgba(26,60,16,0.1); border-bottom:2px solid var(--green-vin); padding:5px 16px; font-family:var(--font-type); font-size:11px; color:var(--green-vin); letter-spacing:0.1em; text-align:center; }
+.screen.validated .validated-banner { display:block; }
+.panel { display:none; }
+.panel.active { display:flex; flex-direction:column; animation:page-turn-in 0.3s ease-out; }
+@keyframes page-turn-in { from { opacity:0; transform:perspective(800px) rotateY(-6deg) translateX(-15px); } to { opacity:1; transform:perspective(800px) rotateY(0) translateX(0); } }
+.body { display:grid; grid-template-columns:380px 1fr; }
+.left { border-right:2px dotted var(--border); display:flex; flex-direction:column; }
+.car-zone { height:200px; background:var(--paper-aged); border-bottom:2px dotted var(--border); position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+.car-zone img { width:100%; height:100%; object-fit:cover; display:block; }
+.car-fallback { display:flex; flex-direction:column; align-items:center; gap:8px; color:var(--ink-light); font-size:13px; font-family:var(--font-hand); }
+.car-fallback svg { opacity:0.2; }
+.connector-line { position:absolute; right:60px; bottom:0; width:1px; height:20px; background:var(--ink-light); opacity:0.4; }
+.loading-overlay { position:absolute; inset:0; background:var(--paper-aged); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:10px; z-index:10; transition:opacity 0.3s; }
+.loading-overlay.hidden { opacity:0; pointer-events:none; }
+.spinner { width:24px; height:24px; border:2px solid var(--border); border-top-color:var(--amber); border-radius:50%; animation:spin 0.8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.loading-text { font-size:11px; color:var(--ink-light); letter-spacing:0.06em; font-family:var(--font-type); }
+.damage-zone { background:var(--paper); border-bottom:2px dotted var(--border); padding:12px 14px; position:relative; }
+.damage-zone::before,.damage-zone::after { content:''; position:absolute; width:26px; height:9px; background:rgba(208,188,72,0.65); }
+.damage-zone::before { top:-3px; left:12px; transform:rotate(-2deg); }
+.damage-zone::after { top:-3px; right:12px; transform:rotate(2deg); }
+.damage-header { display:flex; gap:12px; align-items:flex-start; }
+.part-thumb { width:70px; height:70px; background:var(--paper-aged); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:26px; flex-shrink:0; position:relative; }
+.part-thumb-bar { position:absolute; bottom:0; left:0; right:0; height:8px; background:linear-gradient(to right,#246018,#b87008,#8a1010); opacity:0.8; }
+.part-thumb-cursor { position:absolute; bottom:0; width:2px; height:14px; background:var(--ink); transition:left 0.4s; }
+.damage-meta { flex:1; }
+.damage-part-name { font-family:var(--font-type); font-size:13px; color:var(--ink); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:4px; }
+.repl-label { font-family:var(--font-mono); font-size:9px; color:var(--ink-light); letter-spacing:0.06em; margin-bottom:2px; text-transform:uppercase; }
+.repl-time { font-family:var(--font-mono); font-size:28px; font-weight:700; color:var(--red-mark); background:var(--paper-aged); display:inline-block; padding:2px 8px; min-width:110px; text-align:center; border:1px solid var(--border); }
+.repl-time.zero { color:var(--ink-light); }
+.repl-time.warn { color:var(--amber); }
+.repl-time.crit { color:var(--red-mark); }
+.damage-bar-wrap { margin-top:10px; }
+.damage-bar-track { height:18px; background:linear-gradient(to right,#246018 0%,#b87008 50%,#8a1010 100%); position:relative; border:1px solid var(--ink-fade); }
+.damage-bar-needle { position:absolute; top:-4px; width:2px; height:26px; background:var(--ink); box-shadow:0 0 3px rgba(0,0,0,0.6); transition:left 0.5s cubic-bezier(0.4,0,0.2,1); transform:translateX(-50%); }
+.damage-bar-labels { display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:9px; color:var(--ink-light); margin-top:2px; }
+.damage-desc { font-family:var(--font-hand); font-size:13px; color:var(--ink-fade); line-height:1.4; font-style:italic; margin-top:8px; padding:3px 4px; min-height:28px; }
+.sev-badge { display:inline-block; padding:2px 7px; font-family:var(--font-type); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; margin-left:8px; border:2px solid currentColor; box-shadow:inset 0 0 0 1px currentColor; }
+.sev-intact { color:var(--green-lt); } .sev-leger { color:var(--amber); } .sev-modere { color:var(--orange-vin); } .sev-severe { color:var(--red-mark); } .sev-critique { color:var(--red-stamp); }
+.right { display:flex; flex-direction:column; }
+.timer-zone { background:var(--paper-aged); border-bottom:2px dotted var(--border); padding:12px 16px 10px; }
+.timer-label { font-family:var(--font-type); font-size:12px; color:var(--ink); letter-spacing:0.05em; text-transform:uppercase; }
+.timer-sub { font-family:var(--font-mono); font-size:9px; color:var(--ink-light); margin-bottom:4px; letter-spacing:0.06em; }
+.timer-val { font-family:var(--font-mono); font-size:52px; font-weight:700; color:var(--red-mark); letter-spacing:-0.02em; line-height:1; }
+.timer-val.warn { color:var(--amber); }
+.timer-val.crit { color:var(--red-stamp); animation:blink-red 1s step-end infinite; }
+@keyframes blink-red { 0%,100% { color:var(--red-stamp); } 50% { color:#cc3030; } }
+.timer-unit { font-size:16px; font-weight:400; color:var(--ink-light); margin-left:2px; vertical-align:bottom; padding-bottom:6px; display:inline-block; }
+.timer-bar { height:4px; background:var(--paper); margin-top:6px; overflow:hidden; border:1px solid var(--border); }
+.timer-bar-fill { height:100%; background:repeating-linear-gradient(90deg,var(--green-lt) 0px,var(--green-lt) 8px,transparent 8px,transparent 12px); transition:width 0.3s,background 0.5s; }
+.handicap-recap { margin-top:6px; display:flex; gap:10px; }
+.hc-badge { font-family:var(--font-mono); font-size:10px; font-weight:700; padding:2px 8px; border:1px solid var(--border); color:var(--ink-light); letter-spacing:0.04em; background:var(--paper); }
+.hc-badge.active-ballast { border-color:var(--amber); color:var(--amber); }
+.hc-badge.active-restrictor { border-color:var(--red-mark); color:var(--red-mark); }
+.comp-list { flex:1; overflow-y:auto; background:var(--paper); }
+.comp-row { display:flex; align-items:center; min-height:44px; padding:8px 12px; border-bottom:1px dotted #c8b090; cursor:pointer; gap:8px; transition:background 0.1s; position:relative; background:var(--paper); font-family:var(--font-type); }
+.comp-row:nth-child(even) { background:var(--paper-aged); }
+.comp-row:hover:not(.intact) { background:var(--kraft-lt); }
+.comp-row.selected { background:var(--kraft-lt); border:1px solid var(--amber); border-left:3px solid var(--red-mark); padding-left:9px; }
+.comp-row.intact { cursor:default; opacity:0.6; }
+.comp-row.no-budget { animation:blink-row-vin 0.6s ease-in-out infinite alternate; }
+@keyframes blink-row-vin { from { background:rgba(138,16,16,0.05); } to { background:rgba(138,16,16,0.15); } }
+.comp-row.no-budget .row-name { color:var(--red-mark); }
+.row-arrow { font-size:8px; color:var(--red-mark); flex-shrink:0; margin-right:2px; }
+.row-name { flex:1; font-family:var(--font-type); font-size:14px; color:var(--ink); letter-spacing:0.02em; }
+.comp-row.intact .row-name { color:var(--ink-light); }
+.row-status { width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
+.row-check { width:18px; height:18px; border:1px solid var(--border-l); display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer; font-size:11px; color:var(--green-vin); background:var(--paper); transition:all 0.12s; }
+.row-check:hover:not(.disabled) { border-color:var(--amber); background:rgba(184,112,8,0.1); }
+.row-check.disabled { opacity:0.3; cursor:default; }
+.row-check.repaired { background:rgba(36,96,24,0.15); border-color:var(--green-lt); }
+.screen.validated .row-check { pointer-events:none; }
+.bottom { background:var(--paper-aged); border-top:2px dotted var(--border); padding:10px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.stage-label { font-family:var(--font-mono); font-size:10px; color:var(--ink-light); letter-spacing:0.05em; }
+.stage-label strong { color:var(--ink); }
+.btn-row { display:flex; gap:8px; }
+.btn { font-family:var(--font-type); font-size:12px; letter-spacing:0.1em; text-transform:uppercase; padding:6px 18px; border:2px solid var(--ink-light); color:var(--ink-light); background:transparent; cursor:pointer; transition:all 0.12s; }
+.btn:hover { border-color:var(--ink); color:var(--ink); }
+.btn.primary { border-color:var(--green-vin); color:var(--green-vin); }
+.btn.primary:hover { background:rgba(26,60,16,0.08); }
+.btn.danger { border-color:var(--red-mark); color:var(--red-mark); }
+.btn.danger:hover { background:rgba(138,16,16,0.08); }
+.btn:disabled { opacity:0.35; cursor:default; }
+.screen.validated .btn.primary { border-color:var(--green-lt); color:var(--green-lt); cursor:default; }
+.info-panel { padding:16px; flex:1; }
+.info-title { font-family:var(--font-type); font-size:10px; color:var(--ink-light); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:8px; padding-bottom:4px; border-bottom:1px dotted var(--border); }
+.info-grid { display:grid; grid-template-columns:130px 1fr; gap:3px 10px; }
+.info-label { font-family:var(--font-mono); font-size:10px; color:var(--ink-light); padding:3px 0; }
+.info-value { font-family:var(--font-hand); font-size:14px; color:var(--ink); padding:3px 0; }
+.info-value.mono { font-family:var(--font-mono); font-size:10px; color:var(--cyan); }
+.info-car-thumb { height:130px; background:var(--paper-aged); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; overflow:hidden; margin-bottom:10px; }
+.info-car-thumb img { width:100%; height:100%; object-fit:cover; }
+.standings-panel { flex:1; overflow-y:auto; }
+.standings-section-title { font-family:var(--font-type); font-size:10px; color:var(--ink-light); letter-spacing:0.12em; text-transform:uppercase; padding:8px 14px 5px; border-bottom:1px solid var(--border); background:var(--paper-aged); }
+.standings-table { width:100%; border-collapse:collapse; font-family:var(--font-mono); font-size:11px; }
+.standings-table th { font-size:9px; color:var(--ink-light); letter-spacing:0.08em; text-transform:uppercase; padding:6px 10px; text-align:left; background:var(--paper-aged); border-bottom:1px dotted var(--border); font-weight:400; }
+.standings-table td { font-size:11px; color:var(--ink); padding:7px 10px; border-bottom:1px dotted #d8cca8; }
+.standings-table tr:hover td { background:var(--kraft-lt); }
+.standings-table tr.me td { background:rgba(184,112,8,0.08); border-left:3px solid var(--amber); }
+.standings-table tr.me td:first-child { padding-left:7px; }
+.pos-badge { display:inline-block; width:20px; height:20px; line-height:20px; text-align:center; font-size:10px; font-weight:700; background:var(--paper-aged); color:var(--ink-light); }
+.pos-badge.p1 { background:var(--amber); color:var(--paper); }
+.pos-badge.p2 { background:var(--border-l); color:var(--ink); }
+.pos-badge.p3 { background:#cd7f32; color:var(--paper); }
+.bal-cell { color:var(--amber); font-weight:700; }
+.res-cell { color:var(--red-mark); font-weight:700; }
+.standings-empty { padding:20px 14px; font-size:13px; color:var(--ink-light); font-style:italic; font-family:var(--font-hand); }
+.nextstage-panel { flex:1; padding:16px; display:flex; flex-direction:column; gap:14px; }
+.nextstage-hero { background:var(--paper-aged); border:1px solid var(--border); padding:14px; }
+.nextstage-hero-title { font-family:var(--font-type); font-size:10px; color:var(--ink-light); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px; }
+.nextstage-hc { display:flex; gap:16px; margin-bottom:10px; }
+.nextstage-hc-block { text-align:center; flex:1; background:var(--paper); padding:8px; border:1px solid var(--border); }
+.nextstage-hc-label { font-family:var(--font-mono); font-size:8px; color:var(--ink-light); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:3px; }
+.nextstage-hc-val { font-family:var(--font-mono); font-size:28px; font-weight:700; color:var(--ink); }
+.nextstage-hc-val.yellow { color:var(--amber); } .nextstage-hc-val.red { color:var(--red-mark); } .nextstage-hc-val.green { color:var(--green-vin); }
+.nextstage-comp-list { display:flex; flex-direction:column; gap:3px; }
+.nextstage-comp-row { display:flex; align-items:center; gap:8px; padding:5px 8px; background:var(--paper-aged); border:1px solid var(--border); font-family:var(--font-type); }
+.nextstage-comp-name { flex:1; font-size:12px; color:var(--ink); }
+.nextstage-comp-sev { font-size:9px; font-weight:700; }
+.nextstage-comp-hc { font-family:var(--font-mono); font-size:10px; color:var(--ink-light); }
+.nextstage-status-msg { font-family:var(--font-hand); font-size:14px; color:var(--ink-light); line-height:1.5; padding:8px; border-left:3px solid var(--border); }
+.nextstage-status-msg.ok { border-color:var(--green-vin); color:var(--green-vin); }
+.nextstage-status-msg.warn { border-color:var(--amber); color:var(--amber); }
+.circuit-card { background:var(--paper-aged); border:1px solid var(--border); margin-bottom:10px; overflow:hidden; }
+.circuit-header { padding:8px 12px; background:var(--paper); border-bottom:1px solid var(--border); }
+.circuit-name { font-family:var(--font-type); font-size:15px; color:var(--ink); }
+.circuit-layout { font-family:var(--font-mono); font-size:9px; color:var(--ink-light); margin-top:1px; }
+.circuit-map { height:120px; background:var(--paper-aged); display:flex; align-items:center; justify-content:center; overflow:hidden; border-bottom:1px solid var(--border); }
+.circuit-map img { max-height:110px; max-width:100%; object-fit:contain; }
+.circuit-map-fallback { color:var(--ink-light); font-size:11px; font-style:italic; font-family:var(--font-hand); }
+.circuit-meta { padding:8px 12px; display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+.circuit-meta-item { display:flex; flex-direction:column; }
+.circuit-meta-label { font-family:var(--font-mono); font-size:8px; color:var(--ink-light); letter-spacing:0.08em; text-transform:uppercase; }
+.circuit-meta-val { font-family:var(--font-hand); font-size:14px; font-weight:700; color:var(--ink); margin-top:1px; }
+.weather-card { background:var(--paper-aged); border:1px solid var(--border); }
+.weather-header { padding:6px 12px; background:var(--paper); border-bottom:1px solid var(--border); font-family:var(--font-type); font-size:10px; color:var(--ink-light); letter-spacing:0.08em; text-transform:uppercase; }
+.weather-body { padding:10px 12px; display:flex; gap:12px; align-items:center; }
+.weather-icon { font-size:28px; flex-shrink:0; }
+.weather-details { flex:1; }
+.weather-type { font-family:var(--font-hand); font-size:14px; font-weight:700; color:var(--ink); margin-bottom:3px; }
+.weather-grid { display:grid; grid-template-columns:1fr 1fr; gap:2px; }
+.weather-item { font-family:var(--font-mono); font-size:10px; color:var(--ink-light); }
+.weather-item span { color:var(--ink); font-weight:600; }
+.weather-unknown { font-family:var(--font-hand); font-size:12px; color:var(--ink-light); font-style:italic; padding:6px 12px; }
+.quit-panel { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:24px; }
+.quit-title { font-family:var(--font-type); font-size:16px; color:var(--ink); letter-spacing:0.08em; text-align:center; text-transform:uppercase; }
+.quit-sub { font-family:var(--font-hand); font-size:15px; color:var(--ink-light); text-align:center; line-height:1.6; max-width:420px; }
+.quit-summary { background:var(--paper-aged); border:1px solid var(--border); padding:12px 18px; width:100%; max-width:360px; }
+.quit-row { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dotted var(--border); font-family:var(--font-mono); font-size:11px; }
+.quit-row:last-child { border-bottom:none; }
+.quit-row-label { color:var(--ink-light); }
+.quit-row-val { color:var(--ink); font-weight:700; }
+.quit-row-val.cyan { color:var(--cyan); } .quit-row-val.yellow { color:var(--amber); } .quit-row-val.red { color:var(--red-mark); } .quit-row-val.green { color:var(--green-vin); }
+.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); border:1px solid var(--amber); color:var(--paper); padding:7px 18px; font-family:var(--font-type); font-size:12px; letter-spacing:0.08em; opacity:0; pointer-events:none; transition:opacity 0.3s; z-index:100; }
+.toast.show { opacity:1; }
+#login-overlay { position:fixed; inset:0; background:rgba(30,18,8,0.95); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; z-index:200; }
+#login-overlay .lo-title { font-family:var(--font-type); font-size:2rem; color:var(--amber); letter-spacing:0.12em; text-transform:uppercase; }
+#login-overlay .lo-sub { font-family:var(--font-hand); font-size:15px; color:#b4a080; text-align:center; line-height:1.6; }
+.btn-steam { display:flex; align-items:center; gap:12px; background:#1b2838; color:#c7d5e0; border:2px solid #2a475e; padding:12px 26px; font-family:var(--font-type); font-size:13px; letter-spacing:0.08em; cursor:pointer; transition:background 0.2s; text-transform:uppercase; }
+.btn-steam:hover { background:#2a475e; }
+.btn-steam svg { width:24px; height:24px; fill:#c7d5e0; }
+.btn-steam-demo { background:none; border:1px solid #5a4a30; color:#8a7050; font-family:var(--font-type); font-size:11px; letter-spacing:0.08em; padding:7px 18px; cursor:pointer; transition:all 0.15s; text-transform:uppercase; }
+.btn-steam-demo:hover { border-color:var(--amber); color:var(--amber); }
+.lo-loading { display:none; flex-direction:column; align-items:center; gap:12px; }
+.lo-loading .spinner { width:28px; height:28px; border-color:#5a4a30; border-top-color:var(--amber); }
+.lo-err { color:var(--red-mark); font-family:var(--font-hand); font-size:14px; max-width:340px; text-align:center; display:none; }
+#panel-admin { background:#2a1c0c; }
+.admin-toolbar { display:flex; align-items:center; gap:8px; padding:10px 14px; background:#1e1408; border-bottom:2px solid var(--amber); flex-wrap:wrap; }
+.admin-stage-badge { font-family:var(--font-mono); font-size:11px; padding:3px 10px; border:1px solid var(--amber); color:var(--amber); letter-spacing:0.06em; }
+.admin-stats { display:flex; gap:8px; padding:8px 14px; background:#241808; border-bottom:1px solid #3a2810; }
+.admin-stat { background:#1a1208; border:1px solid #3a2810; padding:6px 12px; text-align:center; flex:1; }
+.admin-stat-val { font-family:var(--font-mono); font-size:1.4rem; font-weight:700; line-height:1; }
+.admin-stat-val.cyan { color:var(--hanhart); } .admin-stat-val.green { color:var(--green-lt); } .admin-stat-val.yellow { color:var(--amber); } .admin-stat-val.red { color:var(--red-mark); }
+.admin-stat-label { font-family:var(--font-mono); font-size:8px; color:#8a6a40; letter-spacing:0.08em; text-transform:uppercase; margin-top:3px; }
+.admin-table-wrap { overflow-y:auto; flex:1; }
+.admin-table { width:100%; border-collapse:collapse; font-family:var(--font-mono); font-size:11px; }
+.admin-table th { font-size:8px; color:#8a6a40; letter-spacing:0.08em; text-transform:uppercase; padding:6px 8px; text-align:left; background:#1e1408; border-bottom:1px solid var(--amber); white-space:nowrap; position:sticky; top:0; z-index:1; font-weight:400; }
+.admin-table td { padding:7px 8px; border-bottom:1px solid #2a1808; vertical-align:middle; color:#d4b882; }
+.admin-table tr:hover td { background:rgba(184,112,8,0.06); }
+.admin-status { display:inline-block; padding:1px 5px; font-family:var(--font-type); font-size:9px; letter-spacing:0.06em; text-transform:uppercase; }
+.admin-status.ok { color:var(--green-lt); border:1px solid var(--green-lt); }
+.admin-status.pending { color:var(--amber); border:1px solid var(--amber); }
+.admin-status.none { color:#6a5030; border:1px solid #3a2810; }
+.admin-repair-bar { height:4px; background:#2a1808; border-radius:2px; width:50px; overflow:hidden; display:inline-block; vertical-align:middle; margin-right:3px; }
+.admin-repair-fill { height:100%; background:var(--hanhart); border-radius:2px; }
+.admin-detail { display:none; }
+.admin-detail td { background:#1a1008; padding:8px 12px; }
+.admin-chips { display:flex; flex-wrap:wrap; gap:4px; }
+.admin-chip { padding:2px 7px; font-family:var(--font-mono); font-size:10px; border:1px solid #3a2810; background:#241808; color:#8a6a40; }
+.admin-chip.repaired { border-color:var(--green-lt); color:var(--green-lt); }
+.admin-chip.damaged { border-color:var(--amber); color:var(--amber); }
+.admin-chip.severe { border-color:var(--red-mark); color:var(--red-mark); }
+.admin-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:300; align-items:center; justify-content:center; }
+.admin-modal.open { display:flex; }
+.admin-modal-box { background:#1e1408; border:2px solid var(--amber); padding:22px; max-width:500px; width:90%; }
+.admin-modal-box h3 { font-family:var(--font-type); font-size:12px; color:var(--amber); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:10px; }
+.admin-modal-box p { font-family:var(--font-hand); font-size:13px; color:#b4a080; margin-bottom:8px; line-height:1.5; }
+.admin-modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+.admin-import-result { margin-top:8px; font-family:var(--font-mono); font-size:11px; padding:5px 8px; border-left:3px solid var(--hanhart); background:rgba(168,200,194,0.06); display:none; color:var(--hanhart); }
+.admin-dropzone { border:2px dashed #5a4030; background:#1a1008; padding:28px 18px; text-align:center; cursor:pointer; transition:border-color 0.15s; position:relative; }
+.admin-dropzone:hover,.admin-dropzone.drag-over { border-color:var(--amber); }
+.admin-dropzone input[type=file] { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
+.admin-dropzone-icon { font-size:1.8rem; margin-bottom:6px; }
+.admin-dropzone-label { font-family:var(--font-type); font-size:11px; color:#8a6a40; }
+.admin-dropzone-label strong { color:var(--amber); }
+.admin-dropzone-file { margin-top:8px; font-family:var(--font-mono); font-size:10px; color:var(--green-lt); display:none; }
+#admin-pilot-overlay { display:none; position:fixed; inset:0; z-index:400; background:rgba(10,6,2,0.94); flex-direction:column; align-items:center; justify-content:center; overflow-y:auto; }
+#admin-pilot-overlay.open { display:flex; }
+#admin-pilot-banner { position:fixed; top:0; left:0; right:0; z-index:401; background:repeating-linear-gradient(-45deg,var(--amber) 0px,var(--amber) 16px,#1a1008 16px,#1a1008 32px); padding:6px 18px; display:flex; align-items:center; justify-content:space-between; }
+#admin-pilot-banner .banner-left { display:flex; align-items:center; gap:12px; }
+#admin-pilot-banner .banner-tag { background:#1a1008; color:var(--amber); font-family:var(--font-type); font-size:12px; letter-spacing:0.2em; text-transform:uppercase; padding:3px 10px; border:2px solid var(--amber); }
+#admin-pilot-banner .banner-name { font-family:var(--font-hand); font-size:15px; font-weight:700; color:#1a1008; }
+#admin-config-panel { display:none; padding:12px 14px; overflow-y:auto; flex:1; background:#1e1408; }
+#admin-drivers-panel { flex:1; display:flex; flex-direction:column; }
+#exit-wipe-top,#exit-wipe-bot { position:fixed; left:0; right:0; height:50%; z-index:500; background:#000; pointer-events:none; transition:transform 0.7s cubic-bezier(0.4,0,0.2,1); }
+#exit-wipe-top { top:0; transform:translateY(-100%); } #exit-wipe-bot { bottom:0; transform:translateY(100%); }
+#exit-wipe-top.active { transform:translateY(0); pointer-events:all; } #exit-wipe-bot.active { transform:translateY(0); pointer-events:all; }
+#exit-confirm { display:none; position:fixed; inset:0; z-index:400; background:rgba(0,0,0,0.8); align-items:center; justify-content:center; }
+#exit-confirm.open { display:flex; }
+#exit-confirm .box { background:var(--paper); border:2px solid var(--border); padding:28px 36px; text-align:center; max-width:360px; }
+#exit-confirm .box h3 { font-family:var(--font-type); font-size:1rem; color:var(--ink); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px; }
+#exit-confirm .box p { font-family:var(--font-hand); font-size:14px; color:var(--ink-light); margin-bottom:20px; line-height:1.5; }
+#exit-confirm .actions { display:flex; gap:10px; justify-content:center; }
+#exit-confirm .btn-oui { font-family:var(--font-type); font-size:12px; letter-spacing:0.1em; text-transform:uppercase; padding:8px 28px; border:2px solid var(--red-mark); color:var(--red-mark); background:none; cursor:pointer; }
+#exit-confirm .btn-non { font-family:var(--font-type); font-size:12px; letter-spacing:0.1em; text-transform:uppercase; padding:8px 28px; border:2px solid var(--border-l); color:var(--ink-light); background:none; cursor:pointer; }
+#exit-confirm .btn-oui:hover { background:rgba(138,16,16,0.08); }
+#exit-confirm .btn-non:hover { border-color:var(--ink); color:var(--ink); }
+#music-btn { position:fixed; bottom:14px; left:14px; z-index:150; width:34px; height:34px; border-radius:50%; background:var(--paper); border:1px solid var(--border); color:var(--ink-light); font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:border-color 0.2s,color 0.2s; }
+#music-btn:hover { border-color:var(--amber); color:var(--amber); }
+#music-btn.muted { opacity:0.5; }
+#btn-refresh-data { background:none; border:1px solid var(--border); color:var(--ink-light); font-size:10px; padding:2px 7px; cursor:pointer; font-family:var(--font-type); letter-spacing:0.06em; }
+#btn-refresh-data:hover { border-color:var(--amber); color:var(--amber); }
+#coffee-overlay { position:absolute; inset:0; pointer-events:none; z-index:1; overflow:hidden; }
+
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     CONFIG — À renseigner au déploiement
+══════════════════════════════════════════ -->
+<script>
+const CONFIG = {
+  APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbyLcQhZ3fbgwEphbB6i4TnDdUPehQYBnjAeBOc13xhreHl2Ah5KfQxU1tzIJ1fD7Ld1/exec',
+  CURRENT_STAGE_ID: 'etape_01'   // Mettre à jour à chaque étape
+};
+</script>
+
+<!-- ══════════════════════════════════════
+     LOGIN OVERLAY (caché après auth)
+══════════════════════════════════════════ -->
+<div id="login-overlay">
+  <div class="lo-title">🏁 TFA SERVICE PARK</div>
+  <div class="lo-sub">Tour de France Auto — Revival Series<br>Connecte-toi pour accéder à ton espace pilote</div>
+
+  <div id="lo-buttons">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+      <button class="btn-steam" id="btn-steam-login">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.187.007l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.606 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.455 1.012H7.54zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.252 0-2.265-1.014-2.265-2.265z"/>
+        </svg>
+        Se connecter avec Steam
+      </button>
+      <button class="btn-steam-demo" id="btn-demo">Mode démo (sans compte)</button>
+    </div>
+  </div>
+
+  <div class="lo-loading" id="lo-loading">
+    <div class="spinner"></div>
+    <div class="loading-text">Chargement des données pilote…</div>
+  </div>
+
+  <div class="lo-err" id="lo-err"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     APP (identique à v5)
+══════════════════════════════════════════ -->
+<!-- Éléments décoratifs bureau -->
+<div id="deco-pencil"></div>
+<div id="deco-notes">Vérif.<br>balast OK<br>restr. →</div>
+
+<div class="screen" id="screen">
+
+  <!-- Chronomètre Hanhart SVG -->
+  <div id="stopwatch-container">
+    <svg viewBox="0 0 170 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="bz" cx="40%" cy="35%" r="60%">
+          <stop offset="0%" stop-color="#d4e8e4"/><stop offset="40%" stop-color="#a8c8c2"/><stop offset="100%" stop-color="#6a9890"/>
+        </radialGradient>
+        <radialGradient id="fc" cx="40%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#fafaf8"/><stop offset="100%" stop-color="#f0ede6"/>
+        </radialGradient>
+        <filter id="ssw"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.4"/></filter>
+        <filter id="bl2"><feGaussianBlur stdDeviation="2"/></filter>
+      </defs>
+      <ellipse cx="90" cy="188" rx="50" ry="7" fill="rgba(0,0,0,0.35)" filter="url(#bl2)"/>
+      <path d="M76 30 Q68 62 66 92" stroke="#b4c4b0" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <path d="M94 30 Q102 62 104 92" stroke="#b4c4b0" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <rect x="82" y="22" width="10" height="14" rx="3" fill="url(#bz)" stroke="#7a9890" stroke-width="0.5"/>
+      <circle cx="85" cy="107" r="62" fill="url(#bz)" filter="url(#ssw)"/>
+      <circle cx="85" cy="107" r="58" fill="none" stroke="#6a9890" stroke-width="0.8"/>
+      <circle cx="85" cy="107" r="54" fill="url(#fc)"/>
+      <rect x="145" y="100" width="8" height="14" rx="3" fill="url(#bz)" stroke="#7a9890" stroke-width="0.5"/>
+      <!-- Graduations (simplifié) -->
+      <g stroke="#333" stroke-width="0.8">
+        <line x1="85" y1="54" x2="85" y2="64" transform="rotate(0,85,107)" stroke-width="1.5"/>
+        <line x1="85" y1="57" x2="85" y2="64" transform="rotate(6,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(12,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(18,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(24,85,107)"/>
+        <line x1="85" y1="54" x2="85" y2="64" transform="rotate(30,85,107)" stroke-width="1.5"/>
+        <line x1="85" y1="57" x2="85" y2="64" transform="rotate(36,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(42,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(48,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(54,85,107)"/>
+        <line x1="85" y1="54" x2="85" y2="64" transform="rotate(60,85,107)" stroke-width="1.5"/>
+        <line x1="85" y1="57" x2="85" y2="64" transform="rotate(66,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(72,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(78,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(84,85,107)"/>
+        <line x1="85" y1="54" x2="85" y2="64" transform="rotate(90,85,107)" stroke-width="1.5"/>
+        <line x1="85" y1="57" x2="85" y2="64" transform="rotate(96,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(102,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(108,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(114,85,107)"/>
+        <line x1="85" y1="54" x2="85" y2="64" transform="rotate(120,85,107)" stroke-width="1.5"/>
+        <line x1="85" y1="57" x2="85" y2="64" transform="rotate(126,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(132,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(138,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(144,85,107)"/>
+        <line x1="85" y1="54" x2="85" y2="64" transform="rotate(150,85,107)" stroke-width="1.5"/>
+        <line x1="85" y1="57" x2="85" y2="64" transform="rotate(156,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(162,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(168,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(174,85,107)"/>
+        <line x1="85" y1="54" x2="85" y2="64" transform="rotate(180,85,107)" stroke-width="1.5"/>
+        <line x1="85" y1="57" x2="85" y2="64" transform="rotate(186,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(192,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(198,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(204,85,107)"/>
+        <line x1="85" y1="54" x2="85" y2="64" transform="rotate(210,85,107)" stroke-width="1.5"/>
+        <line x1="85" y1="57" x2="85" y2="64" transform="rotate(216,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(222,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(228,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(234,85,107)"/>
+        <line x1="85" y1="54" x2="85" y2="64" transform="rotate(240,85,107)" stroke-width="1.5"/>
+        <line x1="85" y1="57" x2="85" y2="64" transform="rotate(246,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(252,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(258,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(264,85,107)"/>
+        <line x1="85" y1="54" x2="85" y2="64" transform="rotate(270,85,107)" stroke-width="1.5"/>
+        <line x1="85" y1="57" x2="85" y2="64" transform="rotate(276,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(282,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(288,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(294,85,107)"/>
+        <line x1="85" y1="54" x2="85" y2="64" transform="rotate(300,85,107)" stroke-width="1.5"/>
+        <line x1="85" y1="57" x2="85" y2="64" transform="rotate(306,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(312,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(318,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(324,85,107)"/>
+        <line x1="85" y1="54" x2="85" y2="64" transform="rotate(330,85,107)" stroke-width="1.5"/>
+        <line x1="85" y1="57" x2="85" y2="64" transform="rotate(336,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(342,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(348,85,107)"/><line x1="85" y1="57" x2="85" y2="64" transform="rotate(354,85,107)"/>
+      </g>
+      <!-- Chiffres ext noirs -->
+      <text x="85" y="72" text-anchor="middle" font-family="Special Elite" font-size="7.5" fill="#222">60</text>
+      <text x="119" y="81" text-anchor="middle" font-family="Special Elite" font-size="7.5" fill="#222">10</text>
+      <text x="132" y="110" text-anchor="middle" font-family="Special Elite" font-size="7.5" fill="#222">20</text>
+      <text x="119" y="140" text-anchor="middle" font-family="Special Elite" font-size="7.5" fill="#222">30</text>
+      <text x="85" y="152" text-anchor="middle" font-family="Special Elite" font-size="7.5" fill="#222">40</text>
+      <text x="51" y="140" text-anchor="middle" font-family="Special Elite" font-size="7.5" fill="#222">50</text>
+      <!-- Chiffres int rouges -->
+      <text x="112" y="87" text-anchor="middle" font-family="Special Elite" font-size="6" fill="#cc1010">5</text>
+      <text x="112" y="134" text-anchor="middle" font-family="Special Elite" font-size="6" fill="#cc1010">25</text>
+      <!-- Subdial -->
+      <circle cx="85" cy="80" r="18" fill="#f5f5f0" stroke="#999" stroke-width="0.8"/>
+      <text x="85" y="66" text-anchor="middle" font-family="Special Elite" font-size="5" fill="#333">30</text>
+      <text x="100" y="81" text-anchor="middle" font-family="Special Elite" font-size="5" fill="#cc1010">5</text>
+      <text x="85" y="96" text-anchor="middle" font-family="Special Elite" font-size="5" fill="#333">10</text>
+      <text x="70" y="81" text-anchor="middle" font-family="Special Elite" font-size="5" fill="#cc1010">25</text>
+      <!-- Aiguille min subdial -->
+      <g id="sw-hand-min" transform="rotate(-90,85,80)">
+        <line x1="85" y1="80" x2="85" y2="65" stroke="#1a1408" stroke-width="1.2" stroke-linecap="round"/>
+        <line x1="85" y1="80" x2="85" y2="85" stroke="#1a1408" stroke-width="1.2" stroke-linecap="round"/>
+      </g>
+      <!-- Brand -->
+      <text x="85" y="117" text-anchor="middle" font-family="Special Elite" font-size="7" fill="#333" letter-spacing="1">hanhart</text>
+      <text x="85" y="127" text-anchor="middle" font-family="Special Elite" font-size="4" fill="#888">1/5 SEC</text>
+      <!-- Aiguille secondes -->
+      <g id="sw-hand-sec" transform="rotate(-90,85,107)">
+        <line x1="85" y1="107" x2="85" y2="60" stroke="#cc1010" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="85" y1="107" x2="85" y2="120" stroke="#cc1010" stroke-width="2.5" stroke-linecap="round"/>
+      </g>
+      <!-- Jewel -->
+      <circle cx="85" cy="107" r="5" fill="#d0d8d4" stroke="#888" stroke-width="0.8"/>
+      <circle cx="85" cy="107" r="3" fill="#cc1010"/>
+    </svg>
+    <div id="sw-label">60m 00s</div>
+  </div>
+
+  <!-- Taches de café -->
+  <svg id="coffee-overlay" style="position:absolute;inset:0;pointer-events:none;z-index:1;overflow:hidden;" width="100%" height="100%">
+    <defs><filter id="coffee-blur"><feGaussianBlur stdDeviation="2.5"/></filter></defs>
+    <g id="coffee-stains"></g>
+  </svg>
+
+  <div class="validated-banner" id="val-banner"></div>
+
+  <!-- ── NAV ── -->
+  <nav class="nav">
+    <div class="nav-left">
+      <button class="nav-tab" onclick="goTab('info')"    data-tab="info"    data-i18n="nav_info">—</button>
+      <span class="nav-sep">|</span>
+      <button class="nav-tab" onclick="goTab('standings')" data-tab="standings" data-i18n="nav_standings">—</button>
+      <span class="nav-sep">|</span>
+      <button class="nav-tab active" onclick="goTab('repairs')" data-tab="repairs" data-i18n="nav_repairs">—</button>
+      <span class="nav-sep">|</span>
+      <button class="nav-tab" onclick="goTab('next')"    data-tab="next"    data-i18n="nav_next">—</button>
+      <span class="nav-sep">|</span>
+      <button class="nav-tab" onclick="goTab('quit')"    data-tab="quit"    data-i18n="nav_quit">—</button>
+      <span class="nav-sep" id="admin-sep" style="display:none">|</span>
+      <button class="nav-tab" onclick="goTab('admin')" data-tab="admin" id="admin-tab" style="display:none;color:#f0ad4e;">— ADMIN</button>
+    </div>
+    <div class="nav-right">
+      <div class="lang-toggle">
+        <button class="lang-btn active" id="lang-fr" onclick="setLang('fr')">FR</button>
+        <button class="lang-btn"        id="lang-en" onclick="setLang('en')">EN</button>
+      </div>
+      <div class="nav-driver">
+        <span data-i18n="label_driver">—</span>
+        <span class="sep">|</span>
+        <span class="driver" id="driver-name">—</span>
+      </div>
+      <button id="btn-refresh-data" onclick="refreshPilotData()"
+        title="Actualiser mes données"
+        style="display:none;background:none;border:1px solid var(--border-l);color:var(--text-dim);font-size:11px;padding:2px 8px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;letter-spacing:0.06em;transition:all 0.15s;"
+        onmouseover="this.style.borderColor='var(--cyan)';this.style.color='var(--cyan)'"
+        onmouseout="this.style.borderColor='var(--border-l)';this.style.color='var(--text-dim)'">
+        ↻
+      </button>
+    </div>
+  </nav>
+
+  <!-- ══════════════════════════════════
+       ONGLET INFORMATIONS
+  ══════════════════════════════════ -->
+  <div class="panel" id="panel-info">
+    <div style="display:grid;grid-template-columns:260px 1fr;flex:1;">
+      <!-- Gauche : preview + fiche -->
+      <div style="border-right:2px solid var(--border);display:flex;flex-direction:column;">
+        <div class="info-car-thumb" id="info-thumb">
+          <img id="info-livery" src="" alt=""
+            onerror="this.style.display='none'" />
+        </div>
+        <div style="padding:14px 16px;flex:1;background:var(--bg-mid);">
+          <div class="info-title" data-i18n="info_driver">—</div>
+          <div class="info-grid">
+            <span class="info-label" data-i18n="info_name">—</span>
+            <span class="info-value" id="info-name">—</span>
+            <span class="info-label" data-i18n="info_car">—</span>
+            <span class="info-value" id="info-car">—</span>
+            <span class="info-label" data-i18n="info_skin">—</span>
+            <span class="info-value" id="info-skin">—</span>
+            <span class="info-label">GUID</span>
+            <span class="info-value mono" id="info-guid">—</span>
+            <span class="info-label" data-i18n="info_stage">—</span>
+            <span class="info-value" id="info-stage">—</span>
+          </div>
+        </div>
+      </div>
+      <!-- Droite : composants -->
+      <div style="padding:16px;overflow-y:auto;">
+        <div class="info-title" data-i18n="info_components">—</div>
+        <table class="standings-table" style="margin-bottom:20px;">
+          <thead>
+            <tr>
+              <th data-i18n="th_component">—</th>
+              <th data-i18n="th_score">—</th>
+              <th data-i18n="th_severity">—</th>
+              <th data-i18n="th_ballast">—</th>
+              <th data-i18n="th_restrictor">—</th>
+              <th data-i18n="th_repair">—</th>
+            </tr>
+          </thead>
+          <tbody id="info-comp-table"></tbody>
+        </table>
+        <div class="info-title" data-i18n="info_raw">—</div>
+        <table class="standings-table">
+          <thead>
+            <tr>
+              <th data-i18n="th_zone">—</th>
+              <th data-i18n="th_raw_score">—</th>
+            </tr>
+          </thead>
+          <tbody id="info-raw-table"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="bottom">
+      <div class="stage-label"><span data-i18n="label_stage">—</span> <strong id="info-stagename">—</strong></div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="goTab('repairs')" data-i18n="btn_go_repairs">—</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       ONGLET CLASSEMENT
+  ══════════════════════════════════ -->
+  <div class="panel" id="panel-standings">
+    <div class="standings-panel">
+      <div class="standings-section-title" data-i18n="standings_stage_title">—</div>
+      <table class="standings-table">
+        <thead>
+          <tr>
+            <th data-i18n="th_pos">—</th>
+            <th data-i18n="th_driver">—</th>
+            <th data-i18n="th_time">—</th>
+            <th data-i18n="th_gap">—</th>
+          </tr>
+        </thead>
+        <tbody id="standings-stage-body"></tbody>
+      </table>
+
+      <div class="standings-section-title" style="margin-top:0;" data-i18n="standings_general_title">—</div>
+      <table class="standings-table">
+        <thead>
+          <tr>
+            <th data-i18n="th_pos">—</th>
+            <th data-i18n="th_driver">—</th>
+            <th data-i18n="th_ballast_total">—</th>
+            <th data-i18n="th_restrictor_total">—</th>
+            <th data-i18n="th_repairs_done">—</th>
+          </tr>
+        </thead>
+        <tbody id="standings-general-body"></tbody>
+      </table>
+    </div>
+    <div class="bottom">
+      <div class="stage-label"><span data-i18n="label_stage">—</span> <strong id="standings-stagename">—</strong></div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="goTab('repairs')" data-i18n="btn_go_repairs">—</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       ONGLET RÉPARATIONS
+  ══════════════════════════════════ -->
+  <div class="panel active" id="panel-repairs">
+    <div class="body">
+      <div class="left">
+        <div class="car-zone">
+          <div class="loading-overlay" id="img-loading">
+            <div class="spinner"></div>
+            <div class="loading-text" data-i18n="loading_livery">—</div>
+          </div>
+          <img id="livery-preview" src="" alt=""
+            onload="document.getElementById('img-loading').classList.add('hidden')"
+            onerror="document.getElementById('img-loading').classList.add('hidden');document.getElementById('car-fallback').style.display='flex';" />
+          <div class="car-fallback" id="car-fallback" style="display:none;">
+            <svg width="80" height="40" viewBox="0 0 80 40">
+              <path d="M8 28 Q6 34 10 36 L70 36 Q74 34 72 28 Z" fill="#aaa"/>
+              <path d="M18 16 Q20 8 28 6 L52 6 Q60 8 62 16 L70 28 L10 28 Z" fill="#bbb"/>
+              <circle cx="22" cy="36" r="6" fill="#555"/>
+              <circle cx="58" cy="36" r="6" fill="#555"/>
+            </svg>
+            <span data-i18n="preview_na">—</span>
+          </div>
+          <div class="connector-line"></div>
+        </div>
+        <div class="damage-zone">
+          <div class="damage-header">
+            <div class="part-thumb">
+              <span id="part-icon">🔧</span>
+              <div class="part-thumb-bar"></div>
+              <div class="part-thumb-cursor" id="thumb-cursor" style="left:0%"></div>
+            </div>
+            <div class="damage-meta">
+              <div class="damage-part-name" id="sel-part-name"></div>
+              <div class="repl-label" data-i18n="repl_label">—</div>
+              <div class="repl-time zero" id="repl-time">—:——</div>
+            </div>
+          </div>
+          <div class="damage-bar-wrap">
+            <div class="damage-bar-track">
+              <div class="damage-bar-needle" id="bar-needle" style="left:0%"></div>
+            </div>
+            <div class="damage-bar-labels">
+              <span>0</span><span data-i18n="damage_label">—</span><span>100</span>
+            </div>
+          </div>
+          <div class="damage-desc" id="damage-desc"></div>
+        </div>
+      </div>
+      <div class="right">
+        <div class="timer-zone">
+          <div class="timer-label" data-i18n="timer_label">—</div>
+          <div class="timer-sub" id="timer-sub">—</div>
+          <div class="timer-val" id="timer-val">60<span class="timer-unit" data-i18n="timer_unit">—</span></div>
+          <div class="timer-bar"><div class="timer-bar-fill" id="timer-fill" style="width:100%"></div></div>
+          <div class="handicap-recap">
+            <span class="hc-badge" id="hc-ballast">BALLAST : 0 kg</span>
+            <span class="hc-badge" id="hc-restrictor">RESTRICTOR : 0</span>
+          </div>
+        </div>
+        <div class="loading-overlay" id="list-loading" style="position:relative;height:180px;">
+          <div class="spinner"></div>
+          <div class="loading-text" data-i18n="loading_data">—</div>
+        </div>
+        <div class="comp-list" id="comp-list" style="display:none;"></div>
+      </div>
+    </div>
+    <div class="bottom">
+      <div class="stage-label">
+        <span data-i18n="label_stage">—</span> <strong id="stage-name">—</strong>
+        &nbsp;·&nbsp; <span data-i18n="label_time">—</span> : <strong id="best-time">—</strong>
+        &nbsp;·&nbsp; <span data-i18n="label_pos">—</span> : <strong id="stage-pos">—</strong>
+      </div>
+      <div class="btn-row">
+        <button class="btn" onclick="resetAll()" data-i18n="btn_reset">—</button>
+        <button class="btn primary" id="btn-validate" onclick="validate()" data-i18n="btn_validate">—</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       ONGLET ÉTAPE SUIVANTE
+  ══════════════════════════════════ -->
+  <div class="panel" id="panel-next">
+    <div style="display:grid;grid-template-columns:1fr 1fr;flex:1;overflow:hidden;">
+
+      <!-- Gauche : handicaps + composants -->
+      <div style="border-right:2px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;">
+        <div class="nextstage-panel" style="flex:1;">
+          <div class="nextstage-hero">
+            <div class="nextstage-hero-title" data-i18n="next_handicap_title">—</div>
+            <div class="nextstage-hc">
+              <div class="nextstage-hc-block">
+                <div class="nextstage-hc-label">BALLAST</div>
+                <div class="nextstage-hc-val" id="next-ballast">0</div>
+                <div style="font-size:11px;color:var(--text-dim)">kg</div>
+              </div>
+              <div class="nextstage-hc-block">
+                <div class="nextstage-hc-label">RESTRICTOR</div>
+                <div class="nextstage-hc-val" id="next-restrictor">0</div>
+                <div style="font-size:11px;color:var(--text-dim)">mm</div>
+              </div>
+              <div class="nextstage-hc-block">
+                <div class="nextstage-hc-label" data-i18n="next_time_used">—</div>
+                <div class="nextstage-hc-val" id="next-time">0</div>
+                <div style="font-size:11px;color:var(--text-dim)" data-i18n="next_min">—</div>
+              </div>
+            </div>
+            <div class="nextstage-status-msg" id="next-status-msg">—</div>
+          </div>
+          <div>
+            <div class="info-title" data-i18n="next_comp_title">—</div>
+            <div class="nextstage-comp-list" id="next-comp-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Droite : infos étape suivante (circuit + météo) -->
+      <div style="display:flex;flex-direction:column;overflow-y:auto;">
+        <div id="next-stage-info" style="flex:1;padding:16px;">
+          <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-dim);font-size:13px;font-style:italic;">
+            <span data-i18n="next_no_info">—</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="bottom">
+      <div class="stage-label"><span data-i18n="label_stage">—</span> <strong id="next-stagename">—</strong></div>
+      <div class="btn-row">
+        <button class="btn" onclick="goTab('repairs')" data-i18n="btn_back">—</button>
+        <button class="btn primary" onclick="validate()" id="next-validate-btn" data-i18n="btn_validate">—</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       ONGLET QUITTER
+  ══════════════════════════════════ -->
+  <div class="panel" id="panel-quit">
+    <div class="quit-panel">
+      <div class="quit-title" data-i18n="quit_title">—</div>
+      <div class="quit-sub" id="quit-sub">—</div>
+      <div class="quit-summary" id="quit-summary"></div>
+    </div>
+    <div class="bottom">
+      <div class="stage-label"><span data-i18n="label_stage">—</span> <strong id="quit-stagename">—</strong></div>
+      <div class="btn-row">
+        <button class="btn" onclick="goTab('repairs')" data-i18n="btn_back">—</button>
+        <button class="btn danger" id="btn-quit-save" onclick="quitAndSave()" data-i18n="btn_quit_save">—</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       ONGLET ADMIN
+  ══════════════════════════════════ -->
+  <div class="panel" id="panel-admin">
+    <div class="admin-toolbar">
+      <div class="admin-stage-badge" id="admin-stage-badge">—</div>
+      <button class="btn primary" id="admin-btn-refresh" onclick="adminRefresh()" title="Rafraîchir">↻</button>
+      <span class="toolbar-sep">|</span>
+      <span style="font-size:10px;color:var(--text-dim);font-weight:700;letter-spacing:0.06em;">ORDRE :</span>
+      <button class="btn" style="border-color:var(--yellow);color:var(--yellow);position:relative" onclick="adminOpenImport('championship')" title="① Pilotes + étapes — une fois par saison ou changement d'équipage">
+        <span style="position:absolute;top:-6px;left:-4px;font-size:9px;background:var(--yellow);color:#000;padding:0 4px;border-radius:2px;font-weight:800">①</span>
+        Championnat
+      </button>
+      <button class="btn" style="border-color:var(--green);color:var(--green);position:relative" onclick="adminOpenImport('session_json')" title="② Dégâts + classement — après chaque course">
+        <span style="position:absolute;top:-6px;left:-4px;font-size:9px;background:var(--green);color:#000;padding:0 4px;border-radius:2px;font-weight:800">②</span>
+        Résultats
+      </button>
+      <button class="btn" style="border-color:var(--cyan);color:var(--cyan);position:relative" id="admin-btn-export" onclick="adminExport()" title="③ Après la fin du service park">
+        <span style="position:absolute;top:-6px;left:-4px;font-size:9px;background:var(--cyan);color:#000;padding:0 4px;border-radius:2px;font-weight:800">③</span>
+        ⬇ entry_list.ini
+      </button>
+      <span class="toolbar-sep">|</span>
+      <input type="text" id="admin-inp-stage" placeholder="CURRENT_STAGE_ID" style="font-family:'Barlow Condensed',sans-serif;font-size:13px;padding:5px 8px;background:var(--bg-panel);border:1px solid var(--border-l);color:var(--text);width:180px;" />
+      <button class="btn" onclick="adminSetStage()">Appliquer</button>
+      <span class="toolbar-sep">|</span>
+      <button class="btn danger" onclick="adminResetStage()">⚠ Reset</button>
+      <button class="btn danger" onclick="adminPurgeAll()" style="opacity:0.7">☠ Purge</button>
+    </div>
+    <div class="admin-stats" id="admin-stats">
+      <div class="admin-stat"><div class="admin-stat-val cyan" id="as-total">—</div><div class="admin-stat-label">Pilotes</div></div>
+      <div class="admin-stat"><div class="admin-stat-val green" id="as-validated">—</div><div class="admin-stat-label">Validés</div></div>
+      <div class="admin-stat"><div class="admin-stat-val yellow" id="as-pending">—</div><div class="admin-stat-label">En cours</div></div>
+      <div class="admin-stat"><div class="admin-stat-val red" id="as-none">—</div><div class="admin-stat-label">Pas ouvert</div></div>
+    </div>
+    <div id="admin-config-panel" style="display:none;padding:14px 16px;overflow-y:auto;flex:1;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <span style="font-size:11px;font-weight:700;color:var(--text-dim);letter-spacing:0.1em;text-transform:uppercase;">Configuration</span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn" onclick="adminShowDrivers()">← Pilotes</button>
+        </div>
+      </div>
+
+      <!-- Admins -->
+      <div style="margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-size:10px;font-weight:700;color:var(--yellow);letter-spacing:0.1em;text-transform:uppercase;">Administrateurs</span>
+          <div style="display:flex;gap:6px;">
+            <button class="btn" style="padding:3px 10px;font-size:10px;border-color:var(--green);color:var(--green)" onclick="adminAddAdmin()">+ Ajouter</button>
+            <button class="btn primary" style="padding:3px 10px;font-size:10px;" onclick="adminSaveAdmins()">💾 Sauvegarder</button>
+          </div>
+        </div>
+        <div id="admin-admins-list" style="display:flex;flex-direction:column;gap:6px;">
+          <span style="color:var(--text-dim);font-size:11px;font-style:italic">Chargement…</span>
+        </div>
+      </div>
+
+      <!-- Config dégâts -->
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-size:10px;font-weight:700;color:var(--text-dim);letter-spacing:0.1em;text-transform:uppercase;">Paramètres dégâts</span>
+          <button class="btn primary" style="padding:3px 10px;font-size:10px;" onclick="adminSaveConfig()">💾 Sauvegarder</button>
+        </div>
+        <table class="admin-table" id="admin-config-table">
+          <thead><tr><th>Paramètre</th><th style="width:90px">Valeur</th><th>Description</th></tr></thead>
+          <tbody id="admin-config-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="admin-drivers-panel">
+    <!-- Barre validation rapide -->
+    <div id="admin-quick-bar" style="display:none;align-items:center;gap:10px;padding:8px 16px;background:#1e2830;border-bottom:1px solid var(--border);">
+      <input type="checkbox" id="admin-check-all" style="cursor:pointer;accent-color:var(--cyan);" onchange="adminSelectAll(this.checked)" />
+      <label for="admin-check-all" style="font-size:11px;color:var(--text-dim);cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;">Tout sélectionner</label>
+      <span style="font-size:11px;color:var(--text-dim)" id="admin-sel-count">0 sélectionné(s)</span>
+      <button class="btn" id="admin-bulk-validate" onclick="adminBulkValidate(true)"
+        style="padding:4px 14px;font-size:11px;border-color:var(--green);color:var(--green)">
+        ✅ Valider sélection
+      </button>
+      <button class="btn" onclick="adminBulkValidate(false)"
+        style="padding:4px 14px;font-size:11px;border-color:var(--yellow);color:var(--yellow)">
+        🔓 Dé-valider sélection
+      </button>
+    </div>
+
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th style="width:30px"></th>
+            <th style="width:28px">#</th>
+            <th>Pilote</th>
+            <th>Voiture</th>
+            <th>Statut</th>
+            <th>Ballast</th>
+            <th>Restr.</th>
+            <th>Réparations</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="admin-tbody"></tbody>
+      </table>
+    </div>
+    </div> <!-- /admin-drivers-panel -->
+    <div class="bottom">
+      <div class="stage-label">Admin — <strong id="admin-stagename">—</strong></div>
+      <button class="btn" style="border-color:var(--text-dim);color:var(--text-dim);" onclick="adminShowConfig()">⚙ Config</button>
+      <button class="btn" style="border-color:var(--border-l);color:var(--text-dim);" onclick="adminOpenImport('vehicle_profiles')">🚗 Profils véhicules</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ IMPORT MODAL ══ -->
+<div class="admin-modal" id="admin-import-modal">
+  <div class="admin-modal-box">
+    <h3 id="admin-import-modal-title">Importer</h3>
+    <p id="admin-import-modal-desc">Dépose le fichier JSON ACSM ou clique pour le sélectionner.</p>
+    <div class="admin-dropzone" id="admin-dropzone">
+      <input type="file" id="admin-file-input" accept=".json,application/json" />
+      <div class="admin-dropzone-icon">📂</div>
+      <div class="admin-dropzone-label">Dépose le fichier ici ou <strong>clique pour parcourir</strong></div>
+    </div>
+    <div class="admin-dropzone-file" id="admin-dropzone-file"></div>
+    <div class="admin-import-result" id="admin-import-result"></div>
+    <div class="admin-modal-actions">
+      <button class="btn" id="admin-import-cancel-btn" onclick="document.getElementById('admin-import-modal').classList.remove('open')">Annuler</button>
+      <button class="btn primary" id="admin-import-confirm-btn" onclick="adminDoImport()">Importer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ══ ADMIN PILOT OVERLAY ══ -->
+<div id="admin-pilot-overlay">
+  <div id="admin-pilot-banner">
+    <div class="banner-left">
+      <span class="banner-tag">⚠ ADMIN</span>
+      <span class="banner-name" id="apo-driver-name">—</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btn primary" id="apo-btn-validate" onclick="adminPilotValidate()" style="font-size:12px;padding:5px 16px;">
+        ✅ Valider pour ce pilote
+      </button>
+      <button class="btn" onclick="closeAdminPilotOverlay()" style="font-size:12px;padding:5px 14px;background:#1e2428;border-color:#f0ad4e;color:#f0ad4e;">
+        ✕ Retour admin
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── AUDIO ── -->
+<audio id="bg-music" loop preload="auto">
+  <source src="music.mp3" type="audio/mpeg">
+</audio>
+
+<!-- ── BOUTON MUSIQUE ── -->
+<button id="music-btn" title="Musique on/off">🔊</button>
+
+<!-- ── EXIT WIPE (double rideau) ── -->
+<div id="exit-wipe-top"></div>
+<div id="exit-wipe-bot"></div>
+
+<!-- ── EXIT CONFIRM ── -->
+<div id="exit-confirm">
+  <div class="box">
+    <h3>QUITTER LE SERVICE PARK</h3>
+    <p>Êtes-vous sûr de vouloir fermer ?<br>Assurez-vous d'avoir validé vos réparations.</p>
+    <div class="actions">
+      <button class="btn-non" id="exit-non">Non</button>
+      <button class="btn-oui" id="exit-oui">Oui</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════
+   TRADUCTIONS — identique v5
+   ════════════════════════════════════ */
+const STRINGS = {
+  fr: {
+    nav_info:'Informations', nav_standings:'Classement', nav_repairs:'Réparations',
+    nav_next:'Étape suivante', nav_quit:'Quitter', label_driver:'Pilote',
+    validated_banner:'RÉPARATIONS CONFIRMÉES — Handicaps appliqués à l\'étape suivante',
+    loading_livery:'Chargement livrée...', loading_data:'Chargement données...',
+    preview_na:'Preview indisponible',
+    select_prompt:'— sélectionnez un élément —', default_desc:'Sélectionnez un élément endommagé pour afficher son temps de remplacement et son impact sur les performances.',
+    repl_label:'Replacement Time', damage_label:'Damage',
+    timer_label:'Time Remaining', timer_unit:' min',
+    label_stage:'Étape', label_time:'Temps', label_pos:'Pos.',
+    btn_reset:'Annuler tout', btn_validate:'Confirmer réparations ▶',
+    btn_confirmed:'Réparations confirmées ✓', btn_go_repairs:'Aller aux réparations →',
+    btn_back:'← Retour', btn_quit_save:'Sauvegarder et quitter',
+    badge_repaired:'réparé',
+    toast_budget:'Budget insuffisant — il manque {n} min',
+    toast_confirmed:'Réparations confirmées — handicaps enregistrés',
+    toast_net_err:'Erreur réseau — réessaie',
+    toast_saved_quit:'Données sauvegardées',
+    toast_save_bg_err:'Erreur sauvegarde auto — vérifie ta connexion',
+    confirm_msg:'Confirmer les réparations ?\n\n{r} composant(s) réparé(s)\nTemps utilisé : {u}/{b} min\n\nHandicap étape suivante :\n  BALLAST    : +{bal} kg\n  RESTRICTOR : {res}\n\nCette action est irréversible.',
+    info_driver:'Pilote', info_name:'Nom', info_car:'Voiture', info_skin:'Livrée',
+    info_stage:'Étape', info_components:'Composants gameplay', info_raw:'Scores bruts (source ACSM)',
+    th_component:'Composant', th_score:'Score', th_severity:'Sévérité',
+    th_ballast:'Ballast', th_restrictor:'Restr.', th_repair:'Réparer (min)',
+    th_zone:'Zone carrosserie', th_raw_score:'Score brut',
+    th_pos:'Pos.', th_driver:'Pilote', th_time:'Temps', th_gap:'Écart',
+    th_ballast_total:'Ballast total', th_restrictor_total:'Restrictor',
+    th_repairs_done:'Réparations',
+    standings_stage_title:'Classement étape', standings_general_title:'Classement général TFA',
+    next_handicap_title:'Handicap appliqué à l\'étape suivante',
+    next_time_used:'Temps utilisé', next_min:'min',
+    next_comp_title:'Détail par composant',
+    next_msg_clean:'Aucun dégât — voiture au maximum de ses capacités pour l\'étape suivante.',
+    next_msg_repaired:'Réparations confirmées. Les handicaps ci-dessus seront appliqués au départ.',
+    next_msg_pending:'Réparations non encore confirmées. Retournez à l\'onglet Réparations pour valider.',
+    next_no_info:'Aucune information sur l\'étape suivante.',
+    next_circuit_title:'Circuit', next_weather_title:'Météo prévue',
+    next_weather_unknown:'Météo non configurée pour cet event.',
+    quit_title:'Sauvegarder et quitter',
+    quit_sub_validated:'Vos réparations sont confirmées. Les données ont été envoyées au serveur. Vous pouvez fermer cette fenêtre.',
+    quit_sub_pending:'Vous n\'avez pas encore confirmé vos réparations. Si vous quittez maintenant, les handicaps actuels (sans réparation) seront appliqués.',
+    quit_label_status:'Statut', quit_label_ballast:'Ballast étape suivante',
+    quit_label_restrictor:'Restrictor étape suivante', quit_label_time:'Temps utilisé',
+    quit_status_ok:'Confirmé ✓', quit_status_pending:'En attente',
+    sev:{ intact:'OK', leger:'Léger', modere:'Modéré', severe:'Sévère', critique:'Critique' },
+  },
+  en: {
+    nav_info:'Information', nav_standings:'Standings', nav_repairs:'Repairs',
+    nav_next:'Next Stage', nav_quit:'Quit', label_driver:'Driver',
+    validated_banner:'REPAIRS CONFIRMED — Handicaps applied to next stage',
+    loading_livery:'Loading livery...', loading_data:'Loading data...',
+    preview_na:'Preview unavailable',
+    select_prompt:'— select a component —', default_desc:'Select a damaged component to view its replacement time and performance impact.',
+    repl_label:'Replacement Time', damage_label:'Damage',
+    timer_label:'Time Remaining', timer_unit:' min',
+    label_stage:'Stage', label_time:'Time', label_pos:'Pos.',
+    btn_reset:'Reset all', btn_validate:'Confirm repairs ▶',
+    btn_confirmed:'Repairs confirmed ✓', btn_go_repairs:'Go to repairs →',
+    btn_back:'← Back', btn_quit_save:'Save and quit',
+    badge_repaired:'repaired',
+    toast_budget:'Insufficient budget — {n} min short',
+    toast_confirmed:'Repairs confirmed — handicaps saved',
+    toast_net_err:'Network error — please retry',
+    toast_saved_quit:'Data saved',
+    toast_save_bg_err:'Auto-save error — check your connection',
+    confirm_msg:'Confirm repairs?\n\n{r} component(s) repaired\nTime used: {u}/{b} min\n\nNext stage handicap:\n  BALLAST    : +{bal} kg\n  RESTRICTOR : {res}\n\nThis action is irreversible.',
+    info_driver:'Driver', info_name:'Name', info_car:'Car', info_skin:'Livery',
+    info_stage:'Stage', info_components:'Gameplay components', info_raw:'Raw scores (ACSM source)',
+    th_component:'Component', th_score:'Score', th_severity:'Severity',
+    th_ballast:'Ballast', th_restrictor:'Restr.', th_repair:'Repair (min)',
+    th_zone:'Body zone', th_raw_score:'Raw score',
+    th_pos:'Pos.', th_driver:'Driver', th_time:'Time', th_gap:'Gap',
+    th_ballast_total:'Total ballast', th_restrictor_total:'Restrictor',
+    th_repairs_done:'Repairs',
+    standings_stage_title:'Stage standings', standings_general_title:'TFA overall standings',
+    next_handicap_title:'Handicap for next stage',
+    next_time_used:'Time used', next_min:'min',
+    next_comp_title:'Component detail',
+    next_msg_clean:'No damage — car at full capacity for next stage.',
+    next_msg_repaired:'Repairs confirmed. Handicaps above applied at the start.',
+    next_msg_pending:'Repairs not yet confirmed. Go to the Repairs tab to validate.',
+    next_no_info:'No next stage info available.',
+    next_circuit_title:'Circuit', next_weather_title:'Forecast weather',
+    next_weather_unknown:'Weather not configured for this event.',
+    quit_title:'Save and quit',
+    quit_sub_validated:'Your repairs are confirmed. Data has been sent to the server. You may close this window.',
+    quit_sub_pending:'You have not confirmed your repairs. If you quit now, current handicaps (no repair) will be applied.',
+    quit_label_status:'Status', quit_label_ballast:'Next stage ballast',
+    quit_label_restrictor:'Next stage restrictor', quit_label_time:'Time used',
+    quit_status_ok:'Confirmed ✓', quit_status_pending:'Pending',
+    sev:{ intact:'OK', leger:'Minor', modere:'Moderate', severe:'Severe', critique:'Critical' },
+  },
+};
+
+let LANG = 'fr';
+function t(key, vars = {}) {
+  let s = (STRINGS[LANG]||STRINGS.fr)[key] || key;
+  Object.entries(vars).forEach(([k,v]) => { s = s.replaceAll(`{${k}}`, v); });
+  return s;
+}
+function applyTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+}
+function setLang(lang) {
+  LANG = lang;
+  document.getElementById('lang-fr').classList.toggle('active', lang==='fr');
+  document.getElementById('lang-en').classList.toggle('active', lang==='en');
+  applyTranslations();
+  if (!STATE) return;
+  renderAll();
+}
+
+/* ════════════════════════════════════
+   AUTH & CONFIG
+   ════════════════════════════════════ */
+const urlParams  = new URLSearchParams(location.search);
+const STAGE_ID   = CONFIG.CURRENT_STAGE_ID;
+
+let AUTH = {
+  token:   null,
+  steamId: null,
+  demo:    false,
+  isAdmin: false,
+};
+
+function buildSteamLoginUrl() {
+  const returnTo = encodeURIComponent(CONFIG.APPS_SCRIPT_URL + '?action=steam_callback');
+  const realm    = encodeURIComponent(CONFIG.APPS_SCRIPT_URL);
+  return 'https://steamcommunity.com/openid/login'
+    + '?openid.ns='         + encodeURIComponent('http://specs.openid.net/auth/2.0')
+    + '&openid.mode=checkid_setup'
+    + '&openid.return_to='  + returnTo
+    + '&openid.realm='      + realm
+    + '&openid.identity='   + encodeURIComponent('http://specs.openid.net/auth/2.0/identifier_select')
+    + '&openid.claimed_id=' + encodeURIComponent('http://specs.openid.net/auth/2.0/identifier_select');
+}
+
+/* Appel Apps Script avec token */
+function gasGet(action, extra) {
+  const url = new URL(CONFIG.APPS_SCRIPT_URL);
+  url.searchParams.set('action', action);
+  url.searchParams.set('token',    AUTH.token);
+  url.searchParams.set('steam_id', AUTH.steamId);
+  url.searchParams.set('stage_id', STAGE_ID);
+  if (extra) Object.entries(extra).forEach(([k,v]) => url.searchParams.set(k, v));
+  return fetch(url.toString()).then(r => r.json());
+}
+
+function gasPost(action, body) {
+  const url = new URL(CONFIG.APPS_SCRIPT_URL);
+  url.searchParams.set('action', action);
+  url.searchParams.set('token',    AUTH.token);
+  url.searchParams.set('steam_id', AUTH.steamId);
+  url.searchParams.set('stage_id', STAGE_ID);
+  return fetch(url.toString(), {
+    method: 'POST',
+    body: JSON.stringify(body),
+  }).then(r => r.json());
+}
+
+/* ════════════════════════════════════
+   DONNÉES DÉMO — identique v5
+   ════════════════════════════════════ */
+const DEMO = {
+  driver_guid:'demo_broken_wheel', driver_name:'Broken Wheel',
+  car_model:'ac_legends_gtc_porsche_911_swb_8hlmc', skin:'debilos_riders_3',
+  stage_id:'TFA_E1', ballast_kg:36, restrictor:12,
+  repair_budget_min:60, repair_used_min:0, validated:false,
+  raw:{ front:61.9, rear:39.0, left:0.0, right:9.9, unknown:61.9, speed:88.8 },
+  components:[
+    { id:'refroidissement', name_fr:'Refroidissement', name_en:'Cooling',
+      score:68.4, severity:'critique', ballast_kg:0, restrictor:12, repair_min:50,
+      desc_fr:'Radiateur hors service. Restriction moteur maximum — réparation obligatoire.',
+      desc_en:'Radiator out of service. Maximum engine restriction — repair mandatory.',
+      icon:'🌡', repaired:false },
+    { id:'direction', name_fr:'Direction', name_en:'Steering',
+      score:61.9, severity:'critique', ballast_kg:18, restrictor:0, repair_min:35,
+      desc_fr:'Direction hors service. Pénalité de poids maximum — réparation obligatoire.',
+      desc_en:'Steering out of service. Maximum weight penalty — repair mandatory.',
+      icon:'🎮', repaired:false },
+    { id:'transmission', name_fr:'Transmission', name_en:'Transmission',
+      score:43.2, severity:'severe', ballast_kg:0, restrictor:7, repair_min:28,
+      desc_fr:'Transmission sévèrement atteinte. Forte perte de puissance transmise.',
+      desc_en:'Transmission severely damaged. Significant power loss.',
+      icon:'⚙', repaired:false },
+    { id:'suspension', name_fr:'Suspension', name_en:'Suspension',
+      score:9.9, severity:'leger', ballast_kg:4, restrictor:0, repair_min:8,
+      desc_fr:"Légère déformation d'un triangle. Surpoids léger.",
+      desc_en:'Minor suspension arm deformation. Slight weight penalty.',
+      icon:'🔧', repaired:false },
+    { id:'chassis', name_fr:'Châssis', name_en:'Chassis',
+      score:61.9, severity:'critique', ballast_kg:14, restrictor:0, repair_min:35,
+      desc_fr:'Châssis hors service. Déformation majeure — pénalité de poids maximum.',
+      desc_en:'Chassis out of service. Major deformation — maximum weight penalty.',
+      icon:'🛡', repaired:false },
+  ],
+  stage_results:[
+    { name:'DriK Crozet',       time:'2:21.842', gap:'-', me:false },
+    { name:'Guillaume Kuntz',   time:'2:23.104', gap:'+1.262', me:false },
+    { name:'Aytiux',            time:'2:24.551', gap:'+2.709', me:false },
+    { name:'Broken Wheel',      time:'2:26.190', gap:'+4.348', me:true  },
+    { name:'aSSaSSin\'s_strEEt',time:'2:27.003', gap:'+5.161', me:false },
+  ],
+  general_standings:[
+    { name:'DriK Crozet',        ballast:0,  restrictor:0,  repairs:'3/3' },
+    { name:'Guillaume Kuntz',    ballast:12, restrictor:5,  repairs:'2/5' },
+    { name:'Aytiux',             ballast:25, restrictor:5,  repairs:'2/5' },
+    { name:'Broken Wheel',       ballast:36, restrictor:12, repairs:'0/5', me:true },
+    { name:'aSSaSSin\'s_strEEt', ballast:21, restrictor:2,  repairs:'3/5' },
+  ],
+  next_stage:{
+    name_fr:'Étape 2 — Clermont-Ferrand',
+    name_en:'Stage 2 — Clermont-Ferrand',
+    track:'clermont_ferrand_1972', layout:'circuit',
+    track_display:'Clermont-Ferrand 1972', layout_display:'Circuit',
+    length_km:'8.055', map_url:null,
+    weather:{
+      type_fr:'Nuageux avec risque de pluie', type_en:'Cloudy with risk of rain',
+      icon:'🌦', ambient_temp:'14°C', road_temp:'18°C', wind:'12 km/h',
+      sol_type:'Partly Cloudy', sol_index:17,
+    },
+    date:'2026-04-05', time_of_day:'14:00',
+  },
+};
+
+let STATE = null;
+let selectedId = null;
+let currentTab = 'repairs';
+
+/* ════════════════════════════════════
+   INIT AUTH — nouveau
+   ════════════════════════════════════ */
+function initAuth() {
+  /* 1. Callback Steam : token + steam_id dans l'URL */
+  const token   = urlParams.get('token');
+  const steamId = urlParams.get('steam_id');
+  if (token && steamId) {
+    AUTH.token   = token;
+    AUTH.steamId = steamId;
+    AUTH.isAdmin = urlParams.get('is_admin') === '1';
+    localStorage.setItem('tfa_token',    token);
+    localStorage.setItem('tfa_steam_id', steamId);
+    localStorage.setItem('tfa_is_admin', AUTH.isAdmin ? '1' : '0');
+    history.replaceState({}, '', location.pathname);
+    showLoading();
+    loadFromGAS();
+    return;
+  }
+
+  /* 2. Session encore active */
+  const sToken   = localStorage.getItem('tfa_token');
+  const sSteamId = localStorage.getItem('tfa_steam_id');
+  if (sToken && sSteamId) {
+    AUTH.token   = sToken;
+    AUTH.steamId = sSteamId;
+    AUTH.isAdmin = localStorage.getItem('tfa_is_admin') === '1';
+    showLoading();
+    loadFromGAS();
+    return;
+  }
+
+  /* 3. Afficher login */
+  showLoginOverlay();
+}
+
+function showLoginOverlay() {
+  document.getElementById('login-overlay').style.display = 'flex';
+}
+
+function hideLoginOverlay() {
+  document.getElementById('login-overlay').style.display = 'none';
+}
+
+function showLoading() {
+  document.getElementById('lo-buttons').style.display  = 'none';
+  document.getElementById('lo-loading').style.display  = 'flex';
+  document.getElementById('lo-err').style.display      = 'none';
+  document.getElementById('login-overlay').style.display = 'flex';
+}
+
+function showLoErr(msg) {
+  document.getElementById('lo-buttons').style.display  = 'flex';
+  document.getElementById('lo-loading').style.display  = 'none';
+  const errEl = document.getElementById('lo-err');
+  errEl.textContent = msg;
+  errEl.style.display = 'block';
+}
+
+/* ════════════════════════════════════
+   CHARGEMENT DONNÉES
+   ════════════════════════════════════ */
+async function loadFromGAS() {
+  if (CONFIG.APPS_SCRIPT_URL === 'A_REMPLIR') {
+    /* CONFIG non renseigné → démo automatique */
+    AUTH.demo = true;
+    STATE = JSON.parse(JSON.stringify(DEMO));
+    hideLoginOverlay();
+    initUI();
+    return;
+  }
+  try {
+    const data = await gasGet('get_driver');
+    if (data.error) {
+      // Admin sans entrée pilote → accès avec son vrai nom
+      if ((data.error === 'driver_not_found' || data.error.startsWith('admin_no_pilot:')) && AUTH.isAdmin) {
+        const adminName = data.error.startsWith('admin_no_pilot:')
+          ? data.error.replace('admin_no_pilot:', '')
+          : 'Admin';
+        STATE = { driver_name: adminName, driver_guid: AUTH.steamId, car_model: '',
+                  skin: '', stage_id: STAGE_ID, validated: false,
+                  repair_budget_min: 60, repair_used_min: 0,
+                  ballast_kg: 0, restrictor: 0, penalty_seconds: 0, components: [],
+                  stage_results: [], next_stage: null };
+        hideLoginOverlay();
+        initUI();
+        return;
+      }
+      // Sécurité : driver_not_found pour un non-admin → écran de login avec message
+      if (data.error === 'driver_not_found') {
+        showLoErr('Pilote non inscrit — contacte l\'administrateur.');
+        return;
+      }
+      const msg = data.error === 'driver_not_found'
+        ? 'Pilote non trouvé — contacte l\'administrateur.'
+        : data.error === 'unauthorized'
+        ? 'Session expirée — reconnecte-toi.'
+        : 'Erreur de chargement — réessaie.';
+      showLoErr(msg); return;
+    }
+    /* Normalise les champs name_fr/name_en si absents (compatibilité) */
+    if (data.components) {
+      data.components = data.components.map(c => ({
+        ...c,
+        name_fr: c.name_fr || c.name || c.id,
+        name_en: c.name_en || c.name || c.id,
+        desc_fr: c.desc_fr || c.description || '',
+        desc_en: c.desc_en || c.description || '',
+        icon:    c.icon || '🔧',
+      }));
+    }
+    STATE = data;
+    hideLoginOverlay();
+    initUI();
+  } catch(err) {
+    showLoErr(`Erreur : ${err.message}`);
+  }
+}
+
+/* ════════════════════════════════════
+   NAVIGATION ONGLETS — identique v5
+   ════════════════════════════════════ */
+function goTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById(`panel-${tab}`).classList.add('active');
+  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+  if (tab === 'next')      { renderNextStage(); renderNextStageInfo(); }
+  if (tab === 'quit')      renderQuit();
+  if (tab === 'standings') renderStandings();
+  if (tab === 'info')      renderInfo();
+  if (tab === 'admin')     adminRefresh();
+}
+
+/* ════════════════════════════════════
+   initUI — identique v5
+   ════════════════════════════════════ */
+function initUI() {
+  document.getElementById('driver-name').textContent = STATE.driver_name;
+
+  // Preview livrée : essaie preview.jpg puis livery.png (formats ACSM)
+  // Reset fallback avant de charger une nouvelle image
+  document.getElementById('car-fallback').style.display = 'none';
+  document.getElementById('img-loading').classList.remove('hidden');
+
+  const liveryBase = STATE.skin
+    ? `https://acsm.revivalseries.fr/content/cars/${STATE.car_model}/skins/${STATE.skin}/preview.jpg`
+    : '';
+  if (liveryBase) {
+    document.getElementById('livery-preview').src = liveryBase;
+    document.getElementById('info-livery').src     = liveryBase;
+  } else {
+    document.getElementById('img-loading').classList.add('hidden');
+    document.getElementById('car-fallback').style.display = 'flex';
+  }
+
+  document.getElementById('stage-name').textContent = STATE.stage_id;
+  document.getElementById('best-time').textContent  = urlParams.get('time') || '—';
+  document.getElementById('stage-pos').textContent  = urlParams.get('pos')  || '—';
+
+  ['info-stagename','standings-stagename','next-stagename','quit-stagename'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = STATE.stage_id;
+  });
+
+  if (STATE.validated) {
+    document.getElementById('screen').classList.add('validated');
+    const btn = document.getElementById('btn-validate');
+    btn.textContent = t('btn_confirmed'); btn.disabled = true;
+    const nbtn = document.getElementById('next-validate-btn');
+    if (nbtn) { nbtn.textContent = t('btn_confirmed'); nbtn.disabled = true; }
+  }
+
+  document.getElementById('list-loading').style.display = 'none';
+  document.getElementById('comp-list').style.display    = 'block';
+  document.getElementById('val-banner').textContent     = t('validated_banner');
+  document.getElementById('timer-sub').textContent      = `${STATE.repair_budget_min} ${LANG==='en'?'minute time allocation':'minutes allouées'}`;
+
+  applyTranslations();
+  document.getElementById('sel-part-name').textContent = t('select_prompt');
+  document.getElementById('damage-desc').textContent   = t('default_desc');
+
+  // Bouton refresh visible pour les pilotes connectés
+  if (!AUTH.demo) {
+    const rb = document.getElementById('btn-refresh-data');
+    if (rb) rb.style.display = 'inline-block';
+  }
+
+  // Vérifier les droits admin directement via l'API
+  if (!AUTH.demo) {
+    gasGet('admin_overview')
+      .then(function(data) {
+        if (!data.error) {
+          AUTH.isAdmin = true;
+          sessionStorage.setItem('tfa_is_admin', '1');
+          adminShowTab();
+          adminRender(data);
+        }
+      })
+      .catch(function() {});
+  }
+
+  renderAll();
+}
+
+function renderAll() {
+  if (!STATE) return;
+  renderTimer(); renderList(); updateHandicapBadges();
+  applyTranslations();
+  document.getElementById('val-banner').textContent = t('validated_banner');
+  document.getElementById('timer-sub').textContent  = `${STATE.repair_budget_min} ${LANG==='en'?'minute time allocation':'minutes allouées'}`;
+  if (selectedId) selectPart(selectedId);
+  else {
+    document.getElementById('sel-part-name').textContent = t('select_prompt');
+    document.getElementById('damage-desc').textContent   = t('default_desc');
+  }
+  if (STATE.validated) {
+    const btn = document.getElementById('btn-validate');
+    btn.textContent = t('btn_confirmed');
+  }
+}
+
+/* ════════════════════════════════════
+   ONGLET INFORMATIONS — identique v5
+   ════════════════════════════════════ */
+function renderInfo() {
+  if (!STATE) return;
+  document.getElementById('info-name').textContent  = STATE.driver_name;
+  document.getElementById('info-car').textContent   = STATE.car_model || '—';
+  document.getElementById('info-skin').textContent  = STATE.skin || '—';
+  document.getElementById('info-guid').textContent  = STATE.driver_guid || '—';
+  document.getElementById('info-stage').textContent = STATE.stage_id;
+
+  const tbody = document.getElementById('info-comp-table');
+  tbody.innerHTML = '';
+  STATE.components.forEach(c => {
+    const name = LANG==='en' ? c.name_en : c.name_fr;
+    const sev  = (t('sev')||{})[c.severity] || c.severity;
+    const sevCol = { intact:'var(--green)', leger:'var(--yellow)', modere:'#e8a030', severe:'var(--red)', critique:'#ff6b68' }[c.severity] || 'var(--text)';
+    tbody.innerHTML += `<tr>
+      <td>${c.icon || ''} ${name}</td>
+      <td>${(+c.score).toFixed(1)}</td>
+      <td style="color:${sevCol};font-weight:700;">${sev}</td>
+      <td class="bal-cell">${c.ballast_kg > 0 ? '+'+c.ballast_kg+' kg' : '—'}</td>
+      <td class="res-cell">${c.restrictor > 0 ? c.restrictor : '—'}</td>
+      <td>${c.repair_min > 0 ? c.repair_min+' min' : '—'}</td>
+    </tr>`;
+  });
+
+  const rawBody = document.getElementById('info-raw-table');
+  rawBody.innerHTML = '';
+  const raw = STATE.raw || {};
+  const zones = LANG==='en'
+    ? [['Front bumper', raw.front], ['Rear bumper', raw.rear], ['Left skirt', raw.left], ['Right skirt', raw.right], ['Unknown (global)', raw.unknown], ['Impact speed max', (raw.speed||0)+' km/h']]
+    : [['Pare-chocs avant', raw.front], ['Pare-chocs arrière', raw.rear], ['Bas de caisse gauche', raw.left], ['Bas de caisse droit', raw.right], ['Unknown (global)', raw.unknown], ['Vitesse impact max', (raw.speed||0)+' km/h']];
+  zones.forEach(([label, val]) => {
+    const num = parseFloat(val);
+    const col = !isNaN(num) && num > 0 ? (num > 30 ? 'var(--red)' : num > 10 ? 'var(--yellow)' : 'var(--text)') : 'var(--text-dim)';
+    rawBody.innerHTML += `<tr><td>${label}</td><td style="color:${col};font-weight:${num>0?'700':'400'};">${isNaN(num) ? val : num.toFixed(1)}</td></tr>`;
+  });
+}
+
+/* ════════════════════════════════════
+   ONGLET CLASSEMENT — identique v5
+   ════════════════════════════════════ */
+function msToTime(ms) {
+  if (!ms) return '—';
+  const totalS = Math.floor(ms / 1000);
+  const min    = Math.floor(totalS / 60);
+  const sec    = totalS % 60;
+  const milli  = Math.floor((ms % 1000) / 10);
+  return `${min}:${String(sec).padStart(2,'0')}.${String(milli).padStart(2,'0')}`;
+}
+
+function renderStandings() {
+  if (!STATE) return;
+
+  // ── Classement étape (depuis STATE.stage_results) ──
+  const stageBody = document.getElementById('standings-stage-body');
+  stageBody.innerHTML = '';
+  const results = STATE.stage_results || [];
+  if (!results.length) {
+    stageBody.innerHTML = `<tr><td colspan="4" class="standings-empty">${LANG==='en'?'No stage results available.':'Aucun résultat d\'étape disponible.'}</td></tr>`;
+  } else {
+    const best = results[0] ? results[0].best_lap_ms : 0;
+    results.forEach((r, i) => {
+      const pos   = r.position || (i + 1);
+      const pc    = pos===1?'p1':pos===2?'p2':pos===3?'p3':'';
+      const isMe  = String(r.driver_guid) === String(AUTH.steamId);
+      const gap   = (i === 0 || !r.best_lap_ms || !best) ? '—' : '+' + msToTime(r.best_lap_ms - best);
+      stageBody.innerHTML += `<tr class="${isMe?'me':''}">
+        <td><span class="pos-badge ${pc}">${pos}</span></td>
+        <td>${r.driver_name || '—'}</td>
+        <td>${msToTime(r.best_lap_ms)}</td>
+        <td style="color:var(--text-dim)">${gap}</td>
+      </tr>`;
+    });
+  }
+
+  // ── Classement général par cumul de temps ──
+  const genBody = document.getElementById('standings-general-body');
+  genBody.innerHTML = `<tr><td colspan="5" class="standings-empty" style="font-style:italic">Chargement…</td></tr>`;
+  gasGet('get_general_standings')
+    .then(function(res) {
+      genBody.innerHTML = '';
+      const standings = res.standings || [];
+      if (!standings.length) {
+        genBody.innerHTML = `<tr><td colspan="5" class="standings-empty">${LANG==='en'?'No general standings.':'Aucun classement disponible.'}</td></tr>`;
+        return;
+      }
+      const best = standings[0].total_ms;
+      standings.forEach(function(r, i) {
+        const pos  = i + 1;
+        const pc   = pos===1?'p1':pos===2?'p2':pos===3?'p3':'';
+        const isMe = String(r.driver_guid) === String(AUTH.steamId);
+        const gap  = i === 0 ? '—' : '+' + msToTime(r.total_ms - best);
+        genBody.innerHTML += `<tr class="${isMe?'me':''}">
+          <td><span class="pos-badge ${pc}">${pos}</span></td>
+          <td>${r.driver_name || '—'}</td>
+          <td>${msToTime(r.total_ms)}</td>
+          <td style="color:var(--text-dim)">${gap}</td>
+          <td style="color:var(--text-dim);font-size:11px">${r.events} ét.</td>
+        </tr>`;
+      });
+    })
+    .catch(function() {
+      genBody.innerHTML = `<tr><td colspan="5" class="standings-empty">Non disponible</td></tr>`;
+    });
+}
+
+/* ════════════════════════════════════
+   ONGLET ÉTAPE SUIVANTE — identique v5
+   ════════════════════════════════════ */
+function renderNextStage() {
+  if (!STATE) return;
+  const balEl = document.getElementById('next-ballast');
+  const resEl = document.getElementById('next-restrictor');
+  const timEl = document.getElementById('next-time');
+  const msgEl = document.getElementById('next-status-msg');
+
+  balEl.textContent = STATE.ballast_kg > 0 ? '+'+STATE.ballast_kg : '0';
+  balEl.className   = 'nextstage-hc-val' + (STATE.ballast_kg > 0 ? ' yellow' : ' green');
+  resEl.textContent = STATE.restrictor;
+  resEl.className   = 'nextstage-hc-val' + (STATE.restrictor > 0 ? ' red' : ' green');
+  timEl.textContent = `${STATE.repair_used_min}/${STATE.repair_budget_min}`;
+
+  const hasAnything = STATE.ballast_kg > 0 || STATE.restrictor > 0;
+  if (!hasAnything) {
+    msgEl.textContent = t('next_msg_clean');
+    msgEl.className   = 'nextstage-status-msg ok';
+  } else if (STATE.validated) {
+    msgEl.textContent = t('next_msg_repaired');
+    msgEl.className   = 'nextstage-status-msg ok';
+  } else {
+    msgEl.textContent = t('next_msg_pending');
+    msgEl.className   = 'nextstage-status-msg warn';
+  }
+
+  const list = document.getElementById('next-comp-list');
+  list.innerHTML = '';
+  STATE.components.forEach(c => {
+    const name   = LANG==='en' ? c.name_en : c.name_fr;
+    const sev    = (t('sev')||{})[c.severity] || c.severity;
+    const sevCol = { intact:'var(--green)', leger:'var(--yellow)', modere:'#e8a030', severe:'var(--red)', critique:'#ff6b68' }[c.severity] || 'var(--text)';
+    const parts  = [];
+    if (!c.repaired && c.ballast_kg > 0)  parts.push(`+${c.ballast_kg} kg`);
+    if (!c.repaired && c.restrictor > 0)  parts.push(`R:${c.restrictor}`);
+    const hcStr  = c.repaired ? `<span style="color:var(--green)">✓ ${t('badge_repaired')}</span>` : parts.length ? parts.join(' ') : '—';
+    list.innerHTML += `<div class="nextstage-comp-row">
+      <span style="font-size:16px">${c.icon||'🔧'}</span>
+      <span class="nextstage-comp-name">${name}</span>
+      <span class="nextstage-comp-sev" style="color:${sevCol}">${sev}</span>
+      <span class="nextstage-comp-hc">${hcStr}</span>
+    </div>`;
+  });
+
+  const nbtn = document.getElementById('next-validate-btn');
+  if (nbtn) {
+    nbtn.textContent = STATE.validated ? t('btn_confirmed') : t('btn_validate');
+    nbtn.disabled    = STATE.validated;
+  }
+}
+
+/* ════════════════════════════════════
+   INFOS CIRCUIT — depuis championnat ACSM
+   ════════════════════════════════════ */
+const SOL_WEATHER = {
+  0:'☀️',1:'☀️',2:'🌤',3:'🌤',4:'🌤',5:'🌤',6:'⛅',7:'⛅',8:'🌥',9:'🌥',
+  10:'🌦',11:'🌦',12:'🌦',13:'🌧',14:'🌧',15:'☀️',16:'🌤',17:'⛅',18:'🌥',
+  19:'🌥',20:'🌧',21:'🌧',22:'⛈',23:'⛈',24:'🌩',25:'🌩',26:'❄️',27:'🌨',
+  28:'🌀',29:'🌫',30:'🌬',31:'🌡',32:'⚡',
+};
+
+async function renderNextStageInfo() {
+  if (!STATE) return;
+  const container = document.getElementById('next-stage-info');
+  // Priorité : next_stage depuis l'API (championship_events sheet)
+  const ns = STATE.next_stage || null;
+
+  if (!ns) {
+    container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-dim);font-size:13px;font-style:italic;">${t('next_no_info')}</div>`;
+    return;
+  }
+
+  const trackName  = ns.track    || '—';
+  const layoutName = ns.layout   || '';
+  const stageLabel = ns.event_name || '—';
+  const mapSrc     = `https://acsm.revivalseries.fr/content/tracks/${ns.track}/${ns.layout || ''}/map.png`;
+  const duration   = ns.race_duration ? ns.race_duration + ' min' : '—';
+
+  // Météo depuis CMWFXType
+  const cmwfx   = ns.cmwfx_type || 0;
+  const wIcon   = SOL_WEATHER[cmwfx] || '🌤';
+  const wAmb    = ns.weather_ambient ? ns.weather_ambient + '°C' : '—';
+  const wRoad   = ns.weather_road    ? ns.weather_road + '°C'    : '—';
+  const wWind   = ns.weather_wind    ? ns.weather_wind + ' km/h' : '—';
+
+  const weatherHtml = `
+    <div class="weather-card">
+      <div class="weather-header">${t('next_weather_title')}</div>
+      <div class="weather-body">
+        <div class="weather-icon">${wIcon}</div>
+        <div class="weather-details">
+          <div class="weather-type">Sol type ${cmwfx}</div>
+          <div class="weather-grid">
+            <div class="weather-item">🌡 ${LANG==='en'?'Ambient':'Ambiance'} <span>${wAmb}</span></div>
+            <div class="weather-item">🛣 ${LANG==='en'?'Road':'Route'} <span>${wRoad}</span></div>
+            <div class="weather-item">💨 ${LANG==='en'?'Wind':'Vent'} <span>${wWind}</span></div>
+            <div class="weather-item">⏱ ${LANG==='en'?'Duration':'Durée'} <span>${duration}</span></div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  container.innerHTML = `
+    <div class="info-title" style="margin-bottom:10px;">${t('next_circuit_title')} · ${stageLabel}</div>
+    <div class="circuit-card">
+      <div class="circuit-header">
+        <div class="circuit-name">${trackName}</div>
+        ${layoutName ? `<div class="circuit-layout">${layoutName}</div>` : ''}
+      </div>
+      <div class="circuit-map">
+        <img src="${mapSrc}" alt="${trackName}"
+          onerror="this.parentElement.innerHTML='<span class=circuit-map-fallback>Carte indisponible</span>'" />
+      </div>
+      <div class="circuit-meta">
+        <div class="circuit-meta-item">
+          <span class="circuit-meta-label">${LANG==='en'?'Track':'Circuit'}</span>
+          <span class="circuit-meta-val">${trackName}</span>
+        </div>
+        <div class="circuit-meta-item">
+          <span class="circuit-meta-label">${LANG==='en'?'Duration':'Durée'}</span>
+          <span class="circuit-meta-val">${duration}</span>
+        </div>
+      </div>
+    </div>
+    ${weatherHtml}
+  `;
+}
+
+/* ════════════════════════════════════
+   ONGLET QUITTER — identique v5
+   ════════════════════════════════════ */
+function renderQuit() {
+  if (!STATE) return;
+  document.getElementById('quit-sub').textContent = STATE.validated ? t('quit_sub_validated') : t('quit_sub_pending');
+  const sum = document.getElementById('quit-summary');
+  const statusVal = STATE.validated
+    ? `<span class="quit-row-val green">${t('quit_status_ok')}</span>`
+    : `<span class="quit-row-val yellow">${t('quit_status_pending')}</span>`;
+  const balVal = STATE.ballast_kg > 0
+    ? `<span class="quit-row-val yellow">+${STATE.ballast_kg} kg</span>`
+    : `<span class="quit-row-val">—</span>`;
+  const resVal = STATE.restrictor > 0
+    ? `<span class="quit-row-val red">${STATE.restrictor}</span>`
+    : `<span class="quit-row-val">—</span>`;
+  sum.innerHTML = `
+    <div class="quit-row"><span class="quit-row-label">${t('quit_label_status')}</span>${statusVal}</div>
+    <div class="quit-row"><span class="quit-row-label">${t('quit_label_ballast')}</span>${balVal}</div>
+    <div class="quit-row"><span class="quit-row-label">${t('quit_label_restrictor')}</span>${resVal}</div>
+    <div class="quit-row"><span class="quit-row-label">${t('quit_label_time')}</span><span class="quit-row-val cyan">${STATE.repair_used_min}/${STATE.repair_budget_min} min</span></div>
+  `;
+  const qbtn = document.getElementById('btn-quit-save');
+  if (STATE.validated) { qbtn.textContent = t('btn_quit_save'); qbtn.disabled = false; }
+}
+
+async function quitAndSave() {
+  if (!STATE.validated && !AUTH.demo) {
+    try { await gasPost('validate', {}); } catch(e) {}
+  }
+  STATE.validated = true;
+  document.getElementById('screen').classList.add('validated');
+  // Déclenche la même séquence que le bouton Fermer
+  doExit();
+}
+
+/* ════════════════════════════════════
+   RÉPARATIONS — v5 + branché GAS
+   ════════════════════════════════════ */
+const SEV_COL = { intact:'var(--text-dim)', leger:'var(--yellow)', modere:'#e8a030', severe:'var(--red)', critique:'#ff6b68' };
+
+function renderList() {
+  const list      = document.getElementById('comp-list');
+  const remaining = Math.max(0, STATE.repair_budget_min - STATE.repair_used_min);
+  list.innerHTML  = '';
+  STATE.components.forEach(comp => {
+    const name      = LANG==='en' ? comp.name_en : comp.name_fr;
+    // En mode admin : tous les composants sont accessibles (même intacts)
+    const damaged   = _apoGuid ? true : comp.severity !== 'intact';
+    const isSel     = selectedId === comp.id;
+    const canRepair = damaged && !comp.repaired && comp.repair_min <= remaining;
+    const noBudget  = damaged && !comp.repaired && remaining === 0;
+    const row = document.createElement('div');
+    row.className = ['comp-row', !damaged?'intact':'', isSel?'selected':'', noBudget?'no-budget':''].filter(Boolean).join(' ');
+    row.onclick = () => damaged && selectPart(comp.id);
+    const statusHtml = (!damaged||comp.repaired)
+      ? `<span style="color:var(--green);font-size:14px">✓</span>`
+      : `<span style="color:${SEV_COL[comp.severity]||'var(--yellow)'};font-size:14px">⚠</span>`;
+    let impactHtml = `<span style="min-width:64px;display:inline-block"></span>`;
+    if (damaged && !comp.repaired) {
+      const parts = [];
+      if (comp.ballast_kg>0) parts.push(`+${comp.ballast_kg}kg`);
+      if (comp.restrictor>0) parts.push(`R:${comp.restrictor}`);
+      if (parts.length) impactHtml = `<span style="font-size:10px;color:${comp.restrictor>0?'var(--red)':'var(--yellow)'};font-weight:700;min-width:64px;text-align:right;">${parts.join(' ')}</span>`;
+    } else if (comp.repaired) {
+      impactHtml = `<span style="font-size:10px;color:var(--green);font-weight:700;min-width:64px;text-align:right;">${t('badge_repaired')}</span>`;
+    }
+    if (_apoGuid) {
+      // ── Mode ADMIN : score éditable + slider réparation ──
+      const score = comp.score || 0;
+      const pct   = comp.repair_pct !== undefined ? comp.repair_pct : (comp.repaired ? 100 : 0);
+      comp.repair_pct = pct;
+
+      function calcP(s, p) {
+        const resid = s * (1-p/100) / 100;
+        const pen   = Math.round(Math.pow(Math.max(resid,0),0.7)*(_penMax[comp.id]||0)*10)/10;
+        const cost  = Math.round((p/100)*(s/100)*(_costMax[comp.id]||0)*10)/10;
+        return { pen, cost, type: _penType[comp.id]||'kg' };
+      }
+      const prev = calcP(score, pct);
+      const sevCol = {intact:'var(--green)',leger:'var(--yellow)',modere:'#e8a030',severe:'var(--red)',critique:'#ff6b68'}[comp.severity]||'var(--text-dim)';
+
+      row.style.flexDirection = 'column';
+      row.style.height        = 'auto';
+      row.style.padding       = '8px 14px';
+      row.style.alignItems    = 'stretch';
+      row.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <span class="row-name" style="color:${damaged?'var(--white)':'var(--text-dim)'}">${name}</span>
+          <span style="font-size:10px;font-weight:700;color:${sevCol}">${comp.severity||'intact'}</span>
+          <span style="flex:1"></span>
+          <span style="font-size:10px;color:var(--text-dim)">Score</span>
+          <input type="number" min="0" max="100" step="1" value="${Math.round(score)}"
+            id="score-${comp.id}"
+            style="width:52px;background:var(--bg-panel);border:1px solid var(--border-l);color:var(--cyan);font-family:'Barlow Condensed',sans-serif;font-size:13px;padding:2px 6px;text-align:center;"
+            title="Score de dégât (0=intact, 100=détruit)"
+            onchange="applyScore('${comp.id}', this.value)" />
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <span style="font-size:10px;color:var(--text-dim);width:60px">Réparation</span>
+          <input type="range" min="0" max="100" step="1" value="${pct}"
+            id="slider-${comp.id}"
+            style="flex:1;accent-color:var(--green);cursor:pointer;"
+            oninput="updateSliderPreview('${comp.id}', this.value)"
+            onchange="applySlider('${comp.id}', this.value)" />
+          <span id="slider-pct-${comp.id}" style="font-size:11px;font-weight:700;color:var(--cyan);width:36px;text-align:right">${pct}%</span>
+        </div>
+        <div style="display:flex;gap:14px;font-size:10px;color:var(--text-dim);">
+          <span>Coût : <strong id="slider-cost-${comp.id}" style="color:var(--white)">${prev.cost} min</strong></span>
+          <span>Pénalité : <strong id="slider-pen-${comp.id}" style="color:${prev.pen>0?'var(--yellow)':'var(--green)'}">${prev.pen} ${prev.type}</strong></span>
+          <span style="margin-left:auto;cursor:pointer;color:var(--text-dim)" onclick="resetComponent('${comp.id}')" title="Remettre à l'état de session">↺ Reset</span>
+        </div>
+      `;
+      row.onclick = null;
+    } else {
+      // ── Mode PILOTE : checkbox binaire ──
+      let ckClass='row-check', ckContent='';
+      if (!damaged)          { ckClass+=' disabled repaired'; ckContent='✓'; }
+      else if (comp.repaired){ ckClass+=' repaired'; ckContent='✓'; }
+      else if (!canRepair)   { ckClass+=' disabled'; }
+      row.innerHTML = `
+        <span class="row-arrow">▶</span>
+        <span class="row-name">${name}</span>
+        ${impactHtml}
+        <span class="row-status">${statusHtml}</span>
+        <span class="${ckClass}" onclick="event.stopPropagation();toggleRepair('${comp.id}')">${ckContent}</span>
+      `;
+    }
+    list.appendChild(row);
+  });
+}
+
+function selectPart(id) {
+  selectedId = id;
+  const comp = STATE.components.find(c => c.id===id);
+  if (!comp) return;
+  const name = LANG==='en' ? comp.name_en : comp.name_fr;
+  const sev  = (t('sev')||{})[comp.severity] || comp.severity;
+  document.getElementById('part-icon').textContent = comp.icon || '🔧';
+  document.getElementById('sel-part-name').innerHTML = `${name}<span class="sev-badge sev-${comp.severity}">${sev}</span>`;
+  document.getElementById('damage-desc').textContent = LANG==='en' ? comp.desc_en : comp.desc_fr;
+  const replEl = document.getElementById('repl-time');
+  if (comp.repaired || comp.repair_min===0) {
+    replEl.textContent='00:00'; replEl.className='repl-time zero';
+  } else {
+    const h=String(Math.floor(comp.repair_min/60)).padStart(2,'0');
+    const m=String(comp.repair_min%60).padStart(2,'0');
+    replEl.textContent=`${h}:${m}`;
+    const pct=comp.score/50;
+    replEl.className='repl-time'+(pct>0.6?' crit':pct>0.3?' warn':'');
+  }
+  const pct=Math.min(100,(comp.score/50)*100);
+  document.getElementById('bar-needle').style.left=pct+'%';
+  document.getElementById('thumb-cursor').style.left=pct+'%';
+  renderList();
+}
+
+function toggleRepair(id) {
+  if (STATE.validated && !_apoGuid) return; // admin peut toujours
+  const comp=STATE.components.find(c=>c.id===id);
+  if (!comp||comp.severity==='intact') return;
+  const doRepair=!comp.repaired;
+  const remaining=STATE.repair_budget_min-STATE.repair_used_min;
+  // En mode admin, pas de blocage budget — il peut décocher même si budget dépassé
+  if (!_apoGuid && doRepair && comp.repair_min>remaining) { showToast(t('toast_budget',{n:comp.repair_min-remaining})); return; }
+
+  /* Appliquer immédiatement (non bloquant) */
+  applyLocal(comp, doRepair);
+  if (selectedId===id) selectPart(id);
+  renderTimer(); renderList(); updateHandicapBadges();
+
+  /* Sauvegarder en arrière-plan — fire and forget */
+  if (!AUTH.demo) {
+    if (_apoGuid) {
+      // Mode admin-pilote : sauvegarder pour le pilote via admin routes
+      const stageId = ADMIN_DATA ? ADMIN_DATA.stage_id : STAGE_ID;
+      gasPost('admin_set_repair', {
+        driver_guid: _apoGuid, stage_id: stageId,
+        component_id: id, repaired: comp.repaired
+      }).catch(() => showToast(t('toast_save_bg_err')));
+    } else {
+      gasPost('save_repairs', { components: STATE.components })
+        .then(data => { if (data.error) showToast(t('toast_save_bg_err')); })
+        .catch(() => showToast(t('toast_save_bg_err')));
+    }
+  }
+}
+
+function applyLocal(comp, doRepair) {
+  comp.repaired=doRepair; STATE.repair_used_min+=doRepair?comp.repair_min:-comp.repair_min;
+  let bal=0,res=0;
+  STATE.components.forEach(c=>{ if (!c.repaired) { bal+=c.ballast_kg; res=Math.max(res,c.restrictor); } });
+  STATE.ballast_kg=Math.min(bal,40); STATE.restrictor=Math.min(res,12);
+}
+
+function renderTimer() {
+  const el   = document.getElementById('timer-val');
+  const fill = document.getElementById('timer-fill');
+  const sub  = document.getElementById('timer-sub');
+
+  // Mode admin-pilote : pas de budget, indicateur neutre
+  if (_apoGuid) {
+    el.innerHTML = `∞<span class="timer-unit"> min</span>`;
+    el.className = 'timer-val';
+    fill.style.width      = '100%';
+    fill.style.background = 'var(--yellow)';
+    if (sub) sub.textContent = LANG === 'en'
+      ? 'ADMIN MODE — No budget limit'
+      : 'MODE ADMIN — Aucune limite de budget';
+    return;
+  }
+
+  // Mode pilote normal
+  const used   = STATE.components.reduce((acc, c) => acc + (c.repaired ? (c.repair_min || 0) : 0), 0);
+  const budget = STATE.repair_budget_min || 60;
+  const pct    = Math.min(100, Math.round(used / budget * 100));
+  STATE.repair_used_min = used;
+  el.innerHTML = `${used}<span class="timer-unit">${t('timer_unit')}</span>`;
+  const isOver = used > budget, isWarn = !isOver && pct >= 75;
+  el.className = 'timer-val' + (isOver ? ' crit' : isWarn ? ' warn' : '');
+  fill.style.width      = pct + '%';
+  fill.style.background = isOver ? 'var(--red)' : isWarn ? 'var(--yellow)' : 'var(--cyan)';
+  if (sub) sub.textContent = `${used} / ${budget} ${LANG === 'en' ? 'min allocated' : 'min allouées'}`;
+}
+
+function updateHandicapBadges() {
+  const hcB=document.getElementById('hc-ballast');
+  const hcR=document.getElementById('hc-restrictor');
+  hcB.textContent=`BALLAST : ${STATE.ballast_kg>0?'+':''}${STATE.ballast_kg} kg`;
+  hcR.textContent=`RESTRICTOR : ${STATE.restrictor}`;
+  hcB.className='hc-badge'+(STATE.ballast_kg>0?' active-ballast':'');
+  hcR.className='hc-badge'+(STATE.restrictor>0?' active-restrictor':'');
+}
+
+function resetAll() {
+  if (STATE.validated && !AUTH.isAdmin) return;
+  STATE.components.forEach(c=>{c.repaired=false;});
+  STATE.repair_used_min=0;
+  let bal=0,res=0;
+  STATE.components.forEach(c=>{bal+=c.ballast_kg;res=Math.max(res,c.restrictor);});
+  STATE.ballast_kg=Math.min(bal,40); STATE.restrictor=Math.min(res,12);
+  selectedId=null;
+  document.getElementById('sel-part-name').textContent=t('select_prompt');
+  document.getElementById('damage-desc').textContent=t('default_desc');
+  document.getElementById('repl-time').textContent='—:——';
+  document.getElementById('repl-time').className='repl-time zero';
+  document.getElementById('bar-needle').style.left='0%';
+  document.getElementById('thumb-cursor').style.left='0%';
+  renderTimer(); renderList(); updateHandicapBadges();
+
+  /* Resync en arrière-plan */
+  if (!AUTH.demo) {
+    if (_apoGuid) {
+      const stageId = ADMIN_DATA ? ADMIN_DATA.stage_id : STAGE_ID;
+      STATE.components.forEach(function(c) {
+        gasPost('admin_set_repair', { driver_guid: _apoGuid, stage_id: stageId, component_id: c.id, repaired: false }).catch(() => {});
+      });
+    } else {
+      gasPost('save_repairs', { components: STATE.components }).catch(() => showToast(t('toast_save_bg_err')));
+    }
+  }
+}
+
+async function validate() {
+  if (STATE.validated) return;
+  const r=STATE.components.filter(c=>c.repaired).length;
+  const ok=window.confirm(t('confirm_msg',{r,u:STATE.repair_used_min,b:STATE.repair_budget_min,bal:STATE.ballast_kg,res:STATE.restrictor}));
+  if (!ok) return;
+
+  if (!AUTH.demo) {
+    try {
+      const data = await gasPost('validate', {});
+      if (data.error) { showToast(t('toast_net_err') + ': ' + data.error); return; }
+    } catch { showToast(t('toast_net_err')); return; }
+  }
+
+  STATE.validated=true;
+  document.getElementById('screen').classList.add('validated');
+  ['btn-validate','next-validate-btn'].forEach(id=>{const b=document.getElementById(id);if(b){b.textContent=t('btn_confirmed');b.disabled=true;}});
+  showToast(t('toast_confirmed'));
+}
+
+let _tt=null;
+function showToast(msg) {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+/* ════════════════════════════════════
+   ADMIN
+   ════════════════════════════════════ */
+let ADMIN_DATA = null;
+
+function adminShowTab() {
+  document.getElementById('admin-tab').style.display = 'flex';
+  document.getElementById('admin-sep').style.display = 'flex';
+}
+
+async function adminRefresh() {
+  const btn = document.getElementById('admin-btn-refresh');
+  btn.textContent = '…'; btn.disabled = true;
+  try {
+    const data = await gasGet('admin_overview');
+    if (data.error) throw new Error(data.error);
+    adminRender(data);
+  } catch(e) { showToast('Admin erreur : ' + e.message); }
+  finally { btn.textContent = '↻ Rafraîchir'; btn.disabled = false; }
+}
+
+function adminRender(data) {
+  ADMIN_DATA = data;
+  const stageId  = data.stage_id || '—';
+  const drivers  = data.drivers  || [];
+
+  document.getElementById('admin-stage-badge').textContent = stageId;
+  document.getElementById('admin-stagename').textContent   = stageId;
+  document.getElementById('admin-inp-stage').placeholder   = stageId;
+
+  const validated = drivers.filter(d => d.validated).length;
+  const pending   = drivers.filter(d => !d.validated && d.repair_used_min > 0).length;
+  const none      = drivers.filter(d => !d.validated && d.repair_used_min === 0).length;
+
+  document.getElementById('as-total').textContent     = drivers.length;
+  document.getElementById('as-validated').textContent = validated;
+  document.getElementById('as-pending').textContent   = pending;
+  document.getElementById('as-none').textContent      = none;
+
+  // Barre de validation rapide
+  const quickBar = document.getElementById('admin-quick-bar');
+  if (quickBar) quickBar.style.display = 'flex';
+
+  const sorted = [...drivers].sort((a, b) => {
+    const rank = d => d.validated ? 2 : d.repair_used_min > 0 ? 1 : 0;
+    return rank(a) - rank(b);
+  });
+
+  const tbody = document.getElementById('admin-tbody');
+  tbody.innerHTML = '';
+
+  sorted.forEach((d, i) => {
+    const status    = d.validated ? 'ok' : d.repair_used_min > 0 ? 'pending' : 'none';
+    const statusLbl = d.validated ? '✅ Validé' : d.repair_used_min > 0 ? '🔧 En cours' : '— Pas ouvert';
+    const balHtml   = d.ballast_kg  > 0 ? `<span style="color:var(--yellow);font-weight:700">+${d.ballast_kg}kg</span>` : '<span style="color:var(--text-dim)">—</span>';
+    const resHtml   = d.restrictor  > 0 ? `<span style="color:var(--red);font-weight:700">${d.restrictor}</span>` : '<span style="color:var(--text-dim)">—</span>';
+    const repPct    = d.damaged_count > 0 ? Math.round(d.repaired_count / d.damaged_count * 100) : 0;
+    const repLabel  = d.damaged_count > 0 ? `${d.repaired_count}/${d.damaged_count}` : '—';
+    const className = d.class_name || '';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td onclick="event.stopPropagation()" style="padding:0 8px;">
+        <input type="checkbox" class="admin-row-check" data-guid="${d.driver_guid}"
+          style="cursor:pointer;width:14px;height:14px;accent-color:var(--cyan);" />
+      </td>
+      <td style="color:var(--text-dim);font-size:10px">${i+1}</td>
+      <td style="cursor:pointer" onclick="openAdminPilotOverlay('${d.driver_guid}')">
+        <strong style="font-size:13px">${d.driver_name||'—'}</strong>
+        ${className ? `<span style="font-size:9px;color:var(--text-dim);margin-left:6px">${className}</span>` : ''}
+      </td>
+      <td style="font-size:10px;color:var(--text-dim)">${d.car_model||'—'}</td>
+      <td><span class="admin-status ${status}">${statusLbl}</span></td>
+      <td>${balHtml}</td>
+      <td>${resHtml}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="admin-repair-bar"><div class="admin-repair-fill" style="width:${repPct}%"></div></div>
+          <span style="font-size:10px;color:var(--text-dim)">${repLabel}</span>
+        </div>
+      </td>
+      <td onclick="event.stopPropagation()" style="white-space:nowrap;">
+        <button class="btn" style="padding:2px 10px;font-size:10px;border-color:var(--cyan);color:var(--cyan);margin-right:4px"
+          onclick="openAdminPilotOverlay('${d.driver_guid}')">🔧 Réparer</button>
+        <button class="btn" style="padding:2px 8px;font-size:10px;border-color:${d.validated?'var(--yellow)':'var(--green)'};color:${d.validated?'var(--yellow)':'var(--green)'}"
+          onclick="adminToggleValidated('${d.driver_guid}', ${d.validated})">
+          ${d.validated ? '🔓' : '✅'}
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Mise à jour compteur sélection
+  document.querySelectorAll('.admin-row-check').forEach(cb => {
+    cb.addEventListener('change', adminUpdateSelection);
+  });
+}
+
+function adminUpdateSelection() {
+  const checks = document.querySelectorAll('.admin-row-check');
+  const sel    = [...checks].filter(c => c.checked).length;
+  document.getElementById('admin-sel-count').textContent = `${sel} sélectionné(s)`;
+  const allChk = document.getElementById('admin-check-all');
+  if (allChk) allChk.indeterminate = sel > 0 && sel < checks.length;
+}
+
+function adminSelectAll(checked) {
+  document.querySelectorAll('.admin-row-check').forEach(c => c.checked = checked);
+  adminUpdateSelection();
+}
+
+async function adminBulkValidate(validated) {
+  const guids = [...document.querySelectorAll('.admin-row-check:checked')].map(c => c.dataset.guid);
+  if (!guids.length) { showToast('Aucun pilote sélectionné'); return; }
+  const stageId = ADMIN_DATA ? ADMIN_DATA.stage_id : CONFIG.CURRENT_STAGE_ID;
+  const label   = validated ? 'Validation' : 'Dé-validation';
+  showToast(`${label} en cours (${guids.length})…`);
+  try {
+    await Promise.all(guids.map(guid => gasPost('admin_set_validated', { driver_guid: guid, stage_id: stageId, validated })));
+    showToast(`✓ ${label} de ${guids.length} pilote(s)`);
+    await adminRefresh();
+  } catch(e) { showToast('Erreur : ' + e.message); }
+}
+
+async function adminPurgeAll() {
+  const msg = '☠ PURGE COMPLÈTE DE LA BASE DE DONNÉES\n\n' +
+    'Seront supprimés :\n' +
+    '• driver_state (tous les pilotes)\n' +
+    '• damage_components (tous les dégâts)\n' +
+    '• stage_results (tous les résultats)\n\n' +
+    'Conservés : config, vehicle_profiles, championship_events\n\n' +
+    'Cette action est IRRÉVERSIBLE. Confirmer ?';
+  if (!confirm(msg)) return;
+  if (!confirm('Dernière confirmation — purger la BDD ?')) return;
+  try {
+    const data = await gasPost('purge_db', {});
+    if (data.error) throw new Error(data.error);
+    showToast(`BDD purgée : ${(data.purged || []).join(', ')}`);
+    await adminRefresh();
+  } catch(e) { showToast('Erreur purge : ' + e.message); }
+}
+
+/* ════════════════════════════════════
+   ADMIN PILOT OVERLAY
+   Charge les données du pilote dans STATE
+   et affiche le .screen existant
+   ════════════════════════════════════ */
+let _apoGuid           = null;
+let _savedState        = null;
+let _savedIsAdmin      = false;
+let _savedScreenParent = null;
+let _savedScreenNext   = null;
+const _apoEl = () => document.getElementById('admin-pilot-overlay');
+
+async function openAdminPilotOverlay(guid) {
+  _apoGuid = guid;
+  showToast('Chargement…');
+  try {
+    const data = await gasGet('admin_get_driver_data', { driver_guid: guid });
+    if (data.error) throw new Error(data.error);
+
+    // Sauvegarder le contexte admin
+    _savedState   = STATE ? JSON.parse(JSON.stringify(STATE)) : null;
+    _savedIsAdmin = AUTH.isAdmin;
+
+    // Charger l'état du pilote dans STATE
+    if (data.components) {
+      data.components = data.components.map(function(c) {
+        return Object.assign({ name_fr: c.id, name_en: c.id, desc_fr: '', desc_en: '', icon: '🔧' }, c);
+      });
+    }
+    STATE = data;
+
+    // Mettre à jour le bandeau
+    document.getElementById('apo-driver-name').textContent = data.driver_name || guid;
+    const btn = document.getElementById('apo-btn-validate');
+    btn.textContent       = data.validated ? '🔓 Dé-valider' : '✅ Valider';
+    btn.style.borderColor = data.validated ? 'var(--yellow)' : '';
+    btn.style.color       = data.validated ? 'var(--yellow)' : '';
+
+    // Désactiver les boutons irréversibles côté pilote pendant la session admin
+    AUTH.isAdmin = false; // les toggles fonctionnent normalement
+
+    // Admin mode : désactiver le check validated pour les toggles
+    STATE.validated = false;
+
+    // Naviguer vers réparations + render
+    selectedId = null;
+    goTab('repairs');
+    renderAll();
+    // Forcer aucune classe validated sur le screen
+    document.getElementById('screen').classList.remove('validated');
+    // Masquer la nav (admin ne navigue pas dans les onglets pilote)
+    document.querySelector('.nav').style.display = 'none';
+
+    // Déplacer le .screen DANS l'overlay (fix z-index)
+    const overlay = _apoEl();
+    const screen  = document.getElementById('screen');
+    _savedScreenParent = screen.parentNode;
+    _savedScreenNext   = screen.nextSibling;
+    overlay.appendChild(screen);
+    overlay.classList.add('open');
+  } catch(e) { showToast('Erreur : ' + e.message); }
+}
+
+function closeAdminPilotOverlay() {
+  _apoEl().classList.remove('open');
+  // Remettre le .screen à sa place dans le DOM
+  const screen = document.getElementById('screen');
+  if (_savedScreenParent) {
+    _savedScreenParent.insertBefore(screen, _savedScreenNext);
+  }
+  screen.style.marginTop = '';
+  document.querySelector('.nav').style.display = '';
+
+  // Restaurer le contexte admin
+  AUTH.isAdmin = _savedIsAdmin;
+  if (_savedState) {
+    STATE = _savedState;
+    selectedId = null;
+    renderAll();
+  }
+  _apoGuid    = null;
+  _savedState = null;
+  adminRefresh();
+}
+
+async function adminPilotValidate() {
+  if (!_apoGuid || !STATE) return;
+  const stageId   = ADMIN_DATA ? ADMIN_DATA.stage_id : CONFIG.CURRENT_STAGE_ID;
+  const newVal    = !STATE.validated;
+  try {
+    await gasPost('admin_set_validated', { driver_guid: _apoGuid, stage_id: stageId, validated: newVal });
+    STATE.validated = newVal;
+    const btn = document.getElementById('apo-btn-validate');
+    btn.textContent       = newVal ? '🔓 Dé-valider' : '✅ Valider';
+    btn.style.borderColor = newVal ? 'var(--yellow)' : '';
+    btn.style.color       = newVal ? 'var(--yellow)' : '';
+    // Mettre à jour le screen
+    const screen = document.getElementById('screen');
+    if (newVal) screen.classList.add('validated');
+    else        screen.classList.remove('validated');
+    renderAll();
+    showToast(newVal ? 'Pilote validé ✓' : 'Validation annulée');
+  } catch(e) { showToast('Erreur : ' + e.message); }
+}
+
+// ── Slider réparation partielle (mode admin) ──
+const _penMax  = { refroidissement:12, direction:20, transmission:8, suspension:8, chassis:20 };
+const _costMax = { refroidissement:40, direction:35, transmission:30, suspension:20, chassis:50 };
+const _penType = { refroidissement:'R', direction:'kg', transmission:'R', suspension:'kg', chassis:'kg' };
+
+function updateSliderPreview(compId, pct) {
+  pct = Number(pct);
+  const comp  = STATE.components.find(c => c.id === compId);
+  if (!comp) return;
+  const score  = comp.score || 0;
+  const resid  = score * (1 - pct/100) / 100;
+  const pen    = Math.round(Math.pow(Math.max(resid,0), 0.7) * (_penMax[compId]||0) * 10) / 10;
+  const cost   = Math.round((pct/100) * (score/100) * (_costMax[compId]||0) * 10) / 10;
+  const type   = _penType[compId] || 'kg';
+
+  const pctEl  = document.getElementById('slider-pct-'  + compId);
+  const penEl  = document.getElementById('slider-pen-'  + compId);
+  const costEl = document.getElementById('slider-cost-' + compId);
+  if (pctEl)  pctEl.textContent  = pct + '%';
+  if (penEl)  { penEl.textContent = pen + ' ' + type; penEl.style.color = pen > 0 ? 'var(--yellow)' : 'var(--green)'; }
+  if (costEl) costEl.textContent = cost + ' min';
+}
+
+async function applyScore(compId, newScore) {
+  newScore = Math.max(0, Math.min(100, Math.round(Number(newScore)||0)));
+  const comp = STATE.components.find(c => c.id === compId);
+  if (!comp) return;
+  comp.score = newScore;
+  // Recalculer la preview du slider avec le nouveau score
+  const sliderEl = document.getElementById('slider-' + compId);
+  if (sliderEl) updateSliderPreview(compId, sliderEl.value);
+
+  if (!_apoGuid) return;
+  const stageId = ADMIN_DATA ? ADMIN_DATA.stage_id : STAGE_ID;
+  try {
+    await gasPost('admin_set_component_score', {
+      driver_guid: _apoGuid, stage_id: stageId,
+      component_id: compId, score: newScore
+    });
+    // Recharger pour avoir les vraies valeurs recalculées
+    const data = await gasGet('admin_get_driver_data', { driver_guid: _apoGuid });
+    if (!data.error) {
+      STATE.components = data.components || STATE.components;
+      renderList();
+    }
+  } catch(e) { showToast('Erreur score : ' + e.message); }
+}
+
+// Remet le composant à l'état originel (score inchangé, repair_pct=0)
+async function resetComponent(compId) {
+  const comp = STATE.components.find(c => c.id === compId);
+  if (!comp) return;
+  comp.repaired   = false;
+  comp.repair_pct = 0;
+  const el = document.getElementById('slider-' + compId);
+  if (el) { el.value = 0; updateSliderPreview(compId, 0); }
+  if (_apoGuid) {
+    const stageId = ADMIN_DATA ? ADMIN_DATA.stage_id : STAGE_ID;
+    gasPost('admin_set_repair', { driver_guid: _apoGuid, stage_id: stageId, component_id: compId, repaired: false }).catch(() => {});
+  }
+  renderList();
+}
+
+function applySlider(compId, pct) {
+  pct = Number(pct);
+  const comp = STATE.components.find(c => c.id === compId);
+  if (!comp) return;
+  comp.repair_pct = pct;
+  comp.repaired   = pct >= 100;
+
+  // Recalcul local ballast/restrictor
+  let bal = 0;
+  const restrVals = [];
+  STATE.components.forEach(function(c) {
+    if (!c.repaired || c.repair_pct < 100) {
+      const rp    = c.repair_pct || 0;
+      const score = c.score || 0;
+      const resid = score * (1 - rp/100) / 100;
+      const pen   = Math.pow(Math.max(resid,0), 0.7) * (_penMax[c.id]||0);
+      const type  = _penType[c.id];
+      if (type === 'kg') bal += pen;
+      else restrVals.push(pen);
+    }
+  });
+  restrVals.sort((a,b)=>b-a);
+  STATE.ballast_kg  = Math.round(Math.min(bal, 40) * 10) / 10;
+  STATE.restrictor  = Math.round(Math.min(restrVals[0]||0 + (restrVals[1]||0)*0.3, 12) * 10) / 10;
+  updateHandicapBadges();
+
+  // Sauvegarder via admin_set_repair
+  if (_apoGuid) {
+    const stageId = ADMIN_DATA ? ADMIN_DATA.stage_id : STAGE_ID;
+    gasPost('admin_set_repair', {
+      driver_guid: _apoGuid, stage_id: stageId,
+      component_id: compId, repaired: pct >= 100,
+      repair_pct: pct
+    }).catch(function() { showToast('Erreur sauvegarde'); });
+  }
+}
+
+async function refreshPilotData() {
+  const btn = document.getElementById('btn-refresh-data');
+  if (btn) { btn.textContent = '…'; btn.disabled = true; }
+  try {
+    const data = await gasGet('get_driver');
+    if (data.error) throw new Error(data.error);
+    if (data.components) {
+      data.components = data.components.map(function(c) {
+        return Object.assign({ name_fr: c.id, name_en: c.id, desc_fr: '', desc_en: '', icon: '🔧' }, c);
+      });
+    }
+    STATE = data;
+    selectedId = null;
+    renderAll();
+    showToast('Données actualisées');
+  } catch(e) { showToast('Erreur actualisation : ' + e.message); }
+  finally { if (btn) { btn.textContent = '↻'; btn.disabled = false; } }
+}
+
+async function adminSaveHandicap(guid) {
+  const bal = parseInt(document.getElementById('bal-' + guid).value) || 0;
+  const res = parseInt(document.getElementById('res-' + guid).value) || 0;
+  try {
+    const data = await gasPost('admin_set_handicap', { driver_guid: guid, ballast_kg: bal, restrictor: res });
+    if (data.error) throw new Error(data.error);
+    showToast(`Handicap appliqué : +${bal} kg / R:${res}`);
+    await adminRefresh();
+  } catch(e) { showToast('Erreur : ' + e.message); }
+}
+
+async function adminToggleRepair(guid, componentId, currentRepaired) {
+  try {
+    const data = await gasPost('admin_set_repair', {
+      driver_guid:  guid,
+      stage_id:     ADMIN_DATA ? ADMIN_DATA.stage_id : CONFIG.CURRENT_STAGE_ID,
+      component_id: componentId,
+      repaired:     !currentRepaired,
+    });
+    if (data.error) throw new Error(data.error);
+    showToast(`${componentId} → ${!currentRepaired ? 'réparé' : 'annulé'}`);
+    await adminRefresh();
+  } catch(e) { showToast('Erreur : ' + e.message); }
+}
+
+async function adminRepairAll(guid, repaired) {
+  const stageId = ADMIN_DATA ? ADMIN_DATA.stage_id : CONFIG.CURRENT_STAGE_ID;
+  // Récupère les composants du pilote puis les met tous au même état
+  try {
+    const res = await gasGet('admin_get_driver_repairs', { driver_guid: guid, stage_id: stageId });
+    if (res.error) throw new Error(res.error);
+    // Patch chaque composant
+    for (const comp of (res.components || [])) {
+      if (comp.repaired !== repaired) {
+        await gasPost('admin_set_repair', {
+          driver_guid: guid, stage_id: stageId,
+          component_id: comp.id, repaired: repaired,
+        });
+      }
+    }
+    showToast(repaired ? 'Toutes réparations validées' : 'Toutes réparations annulées');
+    await adminRefresh();
+  } catch(e) { showToast('Erreur : ' + e.message); }
+}
+
+async function adminToggleValidated(guid, currentValidated) {
+  const stageId = ADMIN_DATA ? ADMIN_DATA.stage_id : CONFIG.CURRENT_STAGE_ID;
+  const newVal  = !currentValidated;
+  if (newVal && !confirm(`Valider les réparations de ce pilote ?\n(Action normalement irréversible)`)) return;
+  try {
+    const data = await gasPost('admin_set_validated', {
+      driver_guid: guid, stage_id: stageId, validated: newVal,
+    });
+    if (data.error) throw new Error(data.error);
+    showToast(newVal ? 'Pilote validé' : 'Validation annulée');
+    await adminRefresh();
+  } catch(e) { showToast('Erreur : ' + e.message); }
+}
+
+function adminToggleDetail(guid) {
+  const el = document.getElementById('admin-detail-' + guid);
+  if (el) el.style.display = el.style.display === 'table-row' ? 'none' : 'table-row';
+}
+
+async function adminExport() {
+  const btn = document.getElementById('admin-btn-export');
+  btn.textContent = '…'; btn.disabled = true;
+  try {
+    const data = await gasGet('export_entry_list');
+    if (data.error) throw new Error(data.error);
+
+    // Génère le format entry_list.ini natif AC1
+    const cars = data.Cars || [];
+    const lines = [];
+    cars.forEach(function(car, i) {
+      lines.push(`[CAR_${i}]`);
+      lines.push(`MODEL=${car.Model || ''}`);
+      lines.push(`SKIN=${car.Skin || ''}`);
+      lines.push(`SPECTATOR_MODE=0`);
+      lines.push(`DRIVER_NAME=${(car.Driver && car.Driver.Name) || ''}`);
+      lines.push(`TEAM=${(car.Driver && car.Driver.Team) || ''}`);
+      lines.push(`GUID=${(car.Driver && car.Driver.Guid) || ''}`);
+      // Entiers stricts — AC1 n'accepte pas les décimales
+      lines.push(`BALLAST=${Math.round(car.BallastKG || 0)}`);
+      lines.push(`RESTRICTOR=${Math.round(car.Restrictor || 0)}`);
+      lines.push(`FIXED_SETUP=`);
+      lines.push('');
+    });
+
+    // LF unix (pas CRLF) — ACSM tourne sur Linux
+    const ini      = lines.join('\n');
+    const blob     = new Blob([ini], { type: 'text/plain;charset=utf-8' });
+    const url      = URL.createObjectURL(blob);
+    const a        = document.createElement('a');
+    a.href = url; a.download = 'entry_list.ini';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast(`entry_list.ini téléchargé (${cars.length} pilotes)`);
+  } catch(e) { showToast('Erreur export : ' + e.message); }
+  finally { btn.innerHTML = '⬇ Exporter entry list'; btn.disabled = false; }
+}
+
+let _importParsed = null;
+let _importType   = 'entrylist'; // 'entrylist' | 'championship'
+
+async function adminSyncAll() {
+  if (!confirm('Synchroniser depuis ACSM ?\n\nRécupère le championnat ET les derniers résultats en 1 seule opération.')) return;
+  showToast('Sync championnat…');
+  try {
+    const d1 = await gasGet('sync_acsm_championship');
+    if (d1.error) throw new Error('Championnat : ' + d1.error);
+    showToast(`✓ Championnat "${d1.championship_name}" — ${d1.events} étapes`);
+  } catch(e) { showToast(e.message); return; }
+
+  showToast('Sync résultats…');
+  try {
+    const d2 = await gasGet('fetch_acsm_results');
+    if (d2.error) throw new Error('Résultats : ' + d2.error);
+    showToast(`✓ Résultats — ${d2.results} pilotes, ${d2.damage_entries} dégâts`);
+  } catch(e) { showToast(e.message); }
+
+  await adminRefresh();
+}
+
+async function adminSyncChampionship() {
+  if (!confirm('Synchroniser le championnat depuis ACSM ?\n\nCeci remplace les données championship_events et stage_results.')) return;
+  showToast('Connexion à ACSM…');
+  try {
+    const data = await gasGet('sync_acsm_championship');
+    if (data.error) throw new Error(data.error);
+    showToast(`✓ Championnat "${data.championship_name}" — ${data.events} étapes, ${data.results} résultats`);
+    await adminRefresh();
+  } catch(e) { showToast('Erreur sync : ' + e.message); }
+}
+
+async function adminSyncResults() {
+  if (!confirm('Récupérer les derniers résultats depuis ACSM ?\n\nCeci importe le fichier de résultat le plus récent pour l\'étape courante.')) return;
+  showToast('Récupération résultats ACSM…');
+  try {
+    const data = await gasGet('fetch_acsm_results');
+    if (data.error) throw new Error(data.error);
+    let msg = `✓ ${data.filename} — ${data.results} résultats, ${data.damage_entries} dégâts`;
+    showToast(msg);
+    await adminRefresh();
+  } catch(e) { showToast('Erreur fetch : ' + e.message); }
+}
+
+function adminShowDrivers() {
+  document.getElementById('admin-config-panel').style.display  = 'none';
+  document.getElementById('admin-drivers-panel').style.display = 'block';
+}
+
+let _adminsList = [];
+
+function adminRenderAdmins() {
+  const list = document.getElementById('admin-admins-list');
+  if (!_adminsList.length) {
+    list.innerHTML = '<span style="color:var(--text-dim);font-size:11px;font-style:italic">Aucun admin configuré</span>';
+    return;
+  }
+  list.innerHTML = _adminsList.map((a, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg-panel);border:1px solid var(--border);">
+      <input type="text" value="${a.steam_id}" data-idx="${i}" data-field="steam_id"
+        placeholder="Steam ID64"
+        style="background:var(--bg);border:1px solid var(--border-l);color:var(--cyan);font-family:monospace;font-size:12px;padding:3px 6px;width:180px;"
+        oninput="_adminsList[this.dataset.idx].steam_id=this.value" />
+      <input type="text" value="${a.driver_name||''}" data-idx="${i}" data-field="driver_name"
+        placeholder="Nom (optionnel)"
+        style="background:var(--bg);border:1px solid var(--border-l);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:13px;padding:3px 6px;flex:1;"
+        oninput="_adminsList[this.dataset.idx].driver_name=this.value" />
+      <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-dim);cursor:pointer;">
+        <input type="checkbox" ${a.active?'checked':''} onchange="_adminsList[${i}].active=this.checked" />
+        Actif
+      </label>
+      <button class="btn danger" style="padding:2px 8px;font-size:10px;" onclick="_adminsList.splice(${i},1);adminRenderAdmins()">✕</button>
+    </div>
+  `).join('');
+}
+
+function adminAddAdmin() {
+  _adminsList.push({ steam_id: '', driver_name: '', active: true });
+  adminRenderAdmins();
+}
+
+async function adminSaveAdmins() {
+  const valid = _adminsList.filter(a => a.steam_id.trim());
+  if (!valid.length) { showToast('Au moins un admin requis'); return; }
+  try {
+    const data = await gasPost('save_admins', { admins: valid });
+    if (data.error) throw new Error(data.error);
+    showToast('Admins sauvegardés ✓');
+    _adminsList = valid;
+    adminRenderAdmins();
+  } catch(e) { showToast('Erreur : ' + e.message); }
+}
+
+async function adminShowConfig() {
+  document.getElementById('admin-drivers-panel').style.display = 'none';
+  document.getElementById('admin-config-panel').style.display  = 'block';
+  const tbody = document.getElementById('admin-config-tbody');
+  tbody.innerHTML = '<tr><td colspan="3" style="color:var(--text-dim);font-style:italic;padding:12px">Chargement…</td></tr>';
+  // Charger les admins en parallèle
+  gasGet('get_admins').then(function(d) {
+    if (!d.error) { _adminsList = d.admins || []; adminRenderAdmins(); }
+  });
+  try {
+    const data = await gasGet('get_config');
+    if (data.error) throw new Error(data.error);
+    tbody.innerHTML = '';
+    (data.config || []).forEach(function(row) {
+      const isBool = row.value === 'worst' || row.value === 'sum';
+      const inputHtml = isBool
+        ? `<select data-key="${row.key}" style="background:var(--bg-panel);border:1px solid var(--border-l);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:13px;padding:4px 6px;width:100%;">
+             <option value="worst" ${row.value==='worst'?'selected':''}>worst</option>
+             <option value="sum"   ${row.value==='sum'  ?'selected':''}>sum</option>
+           </select>`
+        : `<input type="number" data-key="${row.key}" value="${row.value}"
+             style="background:var(--bg-panel);border:1px solid var(--border-l);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:13px;padding:4px 6px;width:100%;text-align:center;" />`;
+      tbody.innerHTML += `<tr>
+        <td style="font-family:monospace;font-size:11px;color:var(--cyan)">${row.key}</td>
+        <td>${inputHtml}</td>
+        <td style="font-size:11px;color:var(--text-dim);font-family:'Barlow',sans-serif">${row.description}</td>
+      </tr>`;
+    });
+  } catch(e) { tbody.innerHTML = `<tr><td colspan="3" style="color:var(--red)">${e.message}</td></tr>`; }
+}
+
+async function adminSaveConfig() {
+  const inputs  = document.querySelectorAll('#admin-config-tbody [data-key]');
+  const config  = {};
+  inputs.forEach(function(el) { config[el.dataset.key] = el.value; });
+  try {
+    const data = await gasPost('save_config', { config });
+    if (data.error) throw new Error(data.error);
+    showToast('Configuration sauvegardée ✓');
+  } catch(e) { showToast('Erreur : ' + e.message); }
+}
+
+function adminOpenImport(type) {
+  _importParsed = null;
+  _importType   = type || 'entrylist';
+  document.getElementById('admin-import-result').style.display = 'none';
+  const fileLabel = document.getElementById('admin-dropzone-file');
+  fileLabel.style.display = 'none'; fileLabel.textContent = '';
+  document.getElementById('admin-file-input').value = '';
+  document.getElementById('admin-dropzone').classList.remove('drag-over');
+  document.getElementById('admin-dropzone').querySelector('.admin-dropzone-icon').textContent = '📂';
+  const titles = {
+    championship:     ['📥 Import championnat',  'Dépose le fichier JSON du championnat exporté depuis ACSM.\nAlimente : pilotes, voitures, skins, équipes, étapes, météo.'],
+    session_json:     ['📥 Import résultats',    'Dépose le fichier JSON de résultat de session ACSM (dossier results/).\nAlimente : dégâts par composant + classement de l\'étape.'],
+    vehicle_profiles: ['🚗 Profils véhicules',   'Import unique. Dépose le fichier tfa_vehicle_profiles.json.\nRestе en BDD — ne pas réimporter sauf mise à jour des profils.'],
+  };
+  const [title, desc] = titles[_importType] || titles.entrylist;
+  document.getElementById('admin-import-modal-title').textContent = title;
+  document.getElementById('admin-import-modal-desc').textContent  = desc;
+  document.getElementById('admin-import-modal').classList.add('open');
+}
+
+function adminLoadFile(file) {
+  if (!file) return;
+  if (!file.name.endsWith('.json')) { showToast('Fichier .json requis'); return; }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      _importParsed = JSON.parse(e.target.result);
+      // Feedback contextuel selon le type
+      let info = '';
+      if (_importType === 'championship') {
+        const entrants = Object.keys((_importParsed.Classes && _importParsed.Classes[0] && _importParsed.Classes[0].Entrants) || {}).length;
+        const events   = (_importParsed.Events || []).length;
+        info = `${entrants} pilotes · ${events} étapes`;
+      } else if (_importType === 'session_json') {
+        const cars = (_importParsed.Cars || []).length;
+        const evts = (_importParsed.Events || []).length;
+        const laps = (_importParsed.Laps  || []).length;
+        info = `${cars} voitures · ${evts} contacts · ${laps} tours`;
+      } else if (_importType === 'vehicle_profiles') {
+        const packs = Object.keys(_importParsed.packs || {});
+        const total = packs.reduce((a, p) => a + Object.keys((_importParsed.packs[p].vehicles||{})).length, 0);
+        info = `${total} véhicule(s) dans ${packs.length} pack(s)`;
+      }
+      const label = document.getElementById('admin-dropzone-file');
+      label.textContent = `✓ ${file.name}${info ? ' — ' + info : ''}`;
+      label.style.display = 'block';
+      document.getElementById('admin-dropzone').querySelector('.admin-dropzone-icon').textContent = '✅';
+    } catch(err) { showToast('Fichier JSON invalide : ' + err.message); _importParsed = null; }
+  };
+  reader.readAsText(file);
+}
+
+// File input change
+document.addEventListener('DOMContentLoaded', function() {
+  const input = document.getElementById('admin-file-input');
+  if (input) {
+    input.addEventListener('change', function() {
+      if (this.files[0]) adminLoadFile(this.files[0]);
+    });
+  }
+  // Drag & drop
+  const zone = document.getElementById('admin-dropzone');
+  if (zone) {
+    zone.addEventListener('dragover',  function(e) { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', function()  { zone.classList.remove('drag-over'); });
+    zone.addEventListener('drop',      function(e) {
+      e.preventDefault(); zone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) adminLoadFile(file);
+    });
+  }
+});
+
+async function adminDoImport() {
+  if (!_importParsed) { showToast('Sélectionne un fichier d\'abord'); return; }
+  const btn = document.querySelector('#admin-import-modal .btn.primary');
+  btn.textContent = '…'; btn.disabled = true;
+  const res = document.getElementById('admin-import-result');
+  try {
+    let data;
+    if (_importType === 'session_json') {
+      data = await gasPost('import_session_json', _importParsed);
+      if (data.error) throw new Error(data.error);
+      res.innerHTML = `✓ <strong>${data.results}</strong> résultats, <strong>${data.damage_entries}</strong> entrées de dégâts`;
+    } else if (_importType === 'vehicle_profiles') {
+      data = await gasPost('import_vehicle_profiles', _importParsed);
+      if (data.error) throw new Error(data.error);
+      res.innerHTML = `✓ <strong>${data.vehicles}</strong> véhicules importés (${data.rows} entrées)`;
+    } else if (_importType === 'championship') {
+      data = await gasPost('import_championship', _importParsed);
+      if (data.error) throw new Error(data.error);
+      res.innerHTML = `✓ Championnat importé — <strong>${data.events}</strong> étapes, <strong>${data.results}</strong> résultats, <strong>${data.damage_entries}</strong> dégâts`;
+    } else {
+      const cars = _importParsed.Cars || _importParsed.cars || _importParsed.entries || [];
+      if (!cars.length) throw new Error('Aucun pilote trouvé dans le fichier');
+      data = await gasPost('import_entry_list', {
+        cars, stage_id: ADMIN_DATA ? ADMIN_DATA.stage_id : CONFIG.CURRENT_STAGE_ID
+      });
+      if (data.error) throw new Error(data.error);
+      res.innerHTML = `✓ <strong>${data.inserted}</strong> créés, <strong>${data.updated}</strong> mis à jour`;
+    }
+    res.style.display = 'block';
+    showToast('Import terminé');
+    // Transformer "Annuler" en "OK" et fermer automatiquement après 2s
+    const cancelBtn = document.getElementById('admin-import-cancel-btn');
+    cancelBtn.textContent = 'OK';
+    cancelBtn.style.borderColor = 'var(--green)';
+    cancelBtn.style.color = 'var(--green)';
+    setTimeout(function() {
+      document.getElementById('admin-import-modal').classList.remove('open');
+      cancelBtn.textContent = 'Annuler';
+      cancelBtn.style.borderColor = '';
+      cancelBtn.style.color = '';
+    }, 2000);
+    await adminRefresh();
+  } catch(e) { showToast('Erreur import : ' + e.message); }
+  finally { btn.textContent = 'Importer'; btn.disabled = false; }
+}
+
+async function adminSetStage() {
+  const stageId = document.getElementById('admin-inp-stage').value.trim();
+  if (!stageId) return;
+  if (!confirm(`Changer l'étape active en "${stageId}" ?`)) return;
+  try {
+    const data = await gasPost('set_stage', { stage_id: stageId });
+    if (data.error) throw new Error(data.error);
+    showToast(`Étape → ${stageId}`);
+    await adminRefresh();
+  } catch(e) { showToast('Erreur : ' + e.message); }
+}
+
+async function adminResetStage() {
+  const stageId = ADMIN_DATA ? ADMIN_DATA.stage_id : CONFIG.CURRENT_STAGE_ID;
+  if (!confirm(`⚠ RESET de l'étape "${stageId}" ?\n\nRemet à zéro validated, ballast, restrictor et repaired pour tous les pilotes.\n\nIRRÉVERSIBLE.`)) return;
+  try {
+    const data = await gasPost('reset_stage', { stage_id: stageId });
+    if (data.error) throw new Error(data.error);
+    showToast(`Étape ${stageId} remise à zéro`);
+    await adminRefresh();
+  } catch(e) { showToast('Erreur : ' + e.message); }
+}
+
+/* ════════════════════════════════════
+   LOGIN OVERLAY — events
+   ════════════════════════════════════ */
+document.getElementById('btn-steam-login').addEventListener('click', () => {
+  if (CONFIG.APPS_SCRIPT_URL === 'A_REMPLIR') {
+    alert('CONFIG.APPS_SCRIPT_URL n\'est pas renseigné dans le fichier.');
+    return;
+  }
+  window.location.href = buildSteamLoginUrl();
+});
+
+document.getElementById('btn-demo').addEventListener('click', () => {
+  AUTH.demo = true;
+  STATE = JSON.parse(JSON.stringify(DEMO));
+  hideLoginOverlay();
+  initUI();
+});
+
+/* ════════════════════════════════════
+   DÉMARRAGE
+   ════════════════════════════════════ */
+initAuth();
+
+/* ════════════════════════════════════
+   CHRONOMÈTRE HANHART
+   ════════════════════════════════════ */
+function updateStopwatch() {
+  if (!STATE) return;
+  const budgetSec = (STATE.repair_budget_min || 60) * 60;
+  const usedSec   = (STATE.repair_used_min  || 0)  * 60;
+  const remaining = Math.max(0, budgetSec - usedSec);
+  const min = Math.floor(remaining / 60);
+  const sec = Math.floor(remaining % 60);
+  const secDeg = (sec / 60) * 360 - 90;
+  const minDeg = ((min % 30) / 30) * 360 - 90;
+  const hs = document.getElementById('sw-hand-sec');
+  const hm = document.getElementById('sw-hand-min');
+  if (hs) hs.setAttribute('transform', `rotate(${secDeg},85,107)`);
+  if (hm) hm.setAttribute('transform', `rotate(${minDeg},85,80)`);
+  const lbl = document.getElementById('sw-label');
+  if (lbl) lbl.textContent = `${min}m ${String(sec).padStart(2,'0')}s`;
+  const sc = document.getElementById('stopwatch-container');
+  if (sc) { if (min < 5) sc.classList.add('urgent'); else sc.classList.remove('urgent'); }
+}
+setInterval(updateStopwatch, 500);
+
+/* ════════════════════════════════════
+   TACHES DE CAFÉ (déterministes)
+   ════════════════════════════════════ */
+function generateCoffeeStains(guid) {
+  let h = 0;
+  for (const c of (guid || 'default')) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff;
+  const stains = [
+    { cx: 680 + (h % 80),        cy: 95  + ((h >> 4)  % 40), r: 38 },
+    { cx: 180 + ((h >> 8)  % 60), cy: 580 + ((h >> 12) % 50), r: 30 },
+    { cx: 620 + ((h >> 16) % 50), cy: 650 + ((h >> 20) % 40), r: 22 },
+  ];
+  const el = document.getElementById('coffee-stains');
+  if (!el) return;
+  el.innerHTML = stains.map(function(s) {
+    return `<ellipse cx="${s.cx}" cy="${s.cy}" rx="${s.r}" ry="${Math.round(s.r*0.88)}"
+      fill="none" stroke="rgba(120,72,28,0.3)" stroke-width="${s.r*0.18}"
+      filter="url(#coffee-blur)"/>
+    <ellipse cx="${s.cx}" cy="${s.cy}" rx="${s.r*0.65}" ry="${Math.round(s.r*0.58)}"
+      fill="rgba(140,90,35,0.05)"/>`;
+  }).join('');
+}
+
+// Appeler quand STATE est chargé
+const _origInitUIV3 = initUI;
+initUI = function() {
+  _origInitUIV3.apply(this, arguments);
+  if (STATE && STATE.driver_guid) generateCoffeeStains(STATE.driver_guid);
+  updateStopwatch();
+};
+
+/* ════════════════════════════════════
+   TRADUCTIONS — appliquer au chargement
+   ════════════════════════════════════ */
+// Fix : appliquer les traductions dès que l'UI est initialisée
+const _origInitUI = initUI;
+initUI = function() {
+  _origInitUI.apply(this, arguments);
+  applyTranslations();
+};
+
+/* ════════════════════════════════════
+   MUSIQUE DE FOND
+   ════════════════════════════════════ */
+const _music    = document.getElementById('bg-music');
+const _musicBtn = document.getElementById('music-btn');
+let   _musicMuted = false;
+
+_music.volume = 0.35;
+
+function startMusic() {
+  _music.play().catch(function() {
+    // Autoplay bloqué → attendre premier clic
+    document.addEventListener('click', function _retry() {
+      _music.play().catch(function(){});
+      document.removeEventListener('click', _retry);
+    });
+  });
+}
+
+// Démarrer immédiatement
+startMusic();
+
+_musicBtn.addEventListener('click', function(e) {
+  e.stopPropagation();
+  _musicMuted = !_musicMuted;
+  _music.muted = _musicMuted;
+  _musicBtn.textContent = _musicMuted ? '🔇' : '🔊';
+  _musicBtn.classList.toggle('muted', _musicMuted);
+  if (!_musicMuted && _music.paused) _music.play().catch(function(){});
+  playClick('btn');
+});
+
+/* ════════════════════════════════════
+   BRUITAGES CLICS (Web Audio API)
+   Tabs + boutons sauf panel admin
+   ════════════════════════════════════ */
+let _audioCtx = null;
+
+function getAudioCtx() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return _audioCtx;
+}
+
+function playClick(type) {
+  // type: 'tab' (clic onglet) | 'btn' (clic bouton)
+  try {
+    var ctx  = getAudioCtx();
+    var osc  = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    if (type === 'tab') {
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.1);
+    } else {
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      gain.gain.setValueAtTime(0.06, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.06);
+    }
+  } catch(e) {}
+}
+
+// Branchement sur les onglets nav
+document.querySelectorAll('.nav-tab').forEach(function(btn) {
+  btn.addEventListener('click', function() { playClick('tab'); });
+});
+
+// Branchement sur les boutons hors admin
+document.querySelectorAll('.btn:not(#panel-admin .btn):not(.admin-toolbar .btn)').forEach(function(btn) {
+  btn.addEventListener('click', function() { playClick('btn'); });
+});
+
+/* ════════════════════════════════════
+   EXIT — confirmation + double rideau + fondu musique
+   ════════════════════════════════════ */
+const _exitTop  = document.getElementById('exit-wipe-top');
+const _exitBot  = document.getElementById('exit-wipe-bot');
+const _exitDlg  = document.getElementById('exit-confirm');
+
+function doExit() {
+  // 1. Clic sonore
+  playClick('tab');
+  // 2. Fermer la modale
+  _exitDlg.classList.remove('open');
+  // 3. Fondu musique
+  var vol = _music.volume;
+  var fadeOut = setInterval(function() {
+    if (vol > 0.02) { vol -= 0.025; _music.volume = Math.max(vol, 0); }
+    else { _music.pause(); clearInterval(fadeOut); }
+  }, 30);
+  // 4. Double rideau noir haut + bas → se rejoignent au milieu
+  requestAnimationFrame(function() {
+    _exitTop.classList.add('active');
+    _exitBot.classList.add('active');
+  });
+  // 5. Fermer la fenêtre
+  setTimeout(function() { window.close(); }, 800);
+}
+
+// Bouton Fermer → ouvre la confirmation
+document.getElementById('btn-exit').addEventListener('click', function(e) {
+  e.stopImmediatePropagation();
+  e.preventDefault();
+  _exitDlg.classList.add('open');
+}, true);
+
+document.getElementById('exit-oui').addEventListener('click', doExit);
+document.getElementById('exit-non').addEventListener('click', function() {
+  _exitDlg.classList.remove('open');
+  playClick('btn');
+});
+
+</script>
+</body>
+</html>
